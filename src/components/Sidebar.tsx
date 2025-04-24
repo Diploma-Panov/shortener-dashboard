@@ -13,12 +13,13 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import HomeIcon from '@mui/icons-material/Home';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import FolderIcon from '@mui/icons-material/Folder';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
+import LinkIcon from '@mui/icons-material/Link';
+import { useNavigate } from 'react-router-dom';
 
 const DRAWER_WIDTH = 210;
 const COLLAPSED_WIDTH = 60;
@@ -36,18 +37,19 @@ const NavItem = styled(ListItemButton, {
 }));
 
 const navItems = [
-    { label: 'Home', icon: <HomeIcon /> },
-    { label: 'Dashboard', icon: <DashboardIcon /> },
-    { label: 'Projects', icon: <FolderIcon /> },
-    { label: 'Issues', icon: <BugReportIcon /> },
-    { label: 'Settings', icon: <SettingsIcon /> },
-    { label: 'Logout', icon: <LogoutIcon /> },
+    { label: 'Short URLs', icon: <LinkIcon />, page: '/urls' },
+    { label: 'Dashboard', icon: <DashboardIcon />, page: '/demo' },
+    { label: 'Projects', icon: <FolderIcon />, page: '/demo' },
+    { label: 'Issues', icon: <BugReportIcon />, page: '/demo' },
+    { label: 'Settings', icon: <SettingsIcon />, page: '/demo' },
+    { label: 'Logout', icon: <LogoutIcon />, page: '/demo' },
 ];
 
 export default function Sidebar() {
     const theme = useTheme();
     const [open, setOpen] = useState(true);
     const [selected, setSelected] = useState('Home');
+    const navigate = useNavigate();
 
     return (
         <Drawer
@@ -90,7 +92,10 @@ export default function Sidebar() {
                         <NavItem
                             key={item.label}
                             isSelected={isSelected}
-                            onClick={() => setSelected(item.label)}
+                            onClick={() => {
+                                setSelected(item.label);
+                                navigate(item.page);
+                            }}
                             sx={{
                                 justifyContent: open
                                     ? isSelected
