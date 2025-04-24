@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ThemeProvider,
     CssBaseline,
@@ -12,20 +12,28 @@ import {
     Card,
     CardContent,
     Box,
-    Container,
 } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 
-import { lightTheme, darkTheme } from './common/theme';
 import CanvasStarfield from './components/CanvasStarfield';
+import config from './config/config.ts';
+import { darkTheme, lightTheme } from './common/theme.ts';
+import BackgroundCard from './components/BackgroundCard.tsx';
+import Sidebar from './components/Sidebar.tsx';
 
 export default function App() {
-    const [darkMode, setDarkMode] = useState(false);
-    const theme = darkMode ? darkTheme : lightTheme;
+    const [darkMode, setDarkMode] = useState(
+        !localStorage.getItem(config.darkModeKey) ||
+            localStorage.getItem(config.darkModeKey) === 'true',
+    );
+
+    useEffect(() => {
+        localStorage.setItem(config.darkModeKey, darkMode ? 'true' : 'false');
+    }, [darkMode]);
 
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
 
             <Box
@@ -34,35 +42,46 @@ export default function App() {
                     minHeight: '100vh',
                     bgcolor: 'background.default',
                     overflow: 'hidden',
+                    display: 'flex',
                 }}
             >
-                {darkMode && (
-                    <CanvasStarfield
-                        countFar={1000}
-                        countNear={2000}
-                        parallaxFar={2}
-                        parallaxNear={4}
-                    />
-                )}
+                <CanvasStarfield
+                    countFar={4000}
+                    countNear={8000}
+                    parallaxFar={4}
+                    parallaxNear={8}
+                    dark={darkMode}
+                />
 
-                <Box sx={{ position: 'relative', zIndex: 1 }}>
+                <Sidebar />
+
+                <Box
+                    component="main"
+                    sx={{
+                        flexGrow: 1,
+                        p: 1,
+                        px: 3,
+                        position: 'relative',
+                        zIndex: 1,
+                    }}
+                >
                     <AppBar position="static" color="primary" elevation={0}>
                         <Toolbar>
-                            <Typography variant="h6" sx={{ flexGrow: 1 }}>
-                                Purple Space UI
+                            <Typography variant="h5" sx={{ flexGrow: 1 }}>
+                                Shortener Dashboard
                             </Typography>
-                            <IconButton onClick={() => setDarkMode(!darkMode)} color="inherit">
+                            <IconButton onClick={() => setDarkMode((v) => !v)} color="inherit">
                                 {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
                             </IconButton>
                             <Switch
                                 checked={darkMode}
-                                onChange={() => setDarkMode(!darkMode)}
+                                onChange={() => setDarkMode((v) => !v)}
                                 color="secondary"
                             />
                         </Toolbar>
                     </AppBar>
 
-                    <Container sx={{ py: 4 }}>
+                    <BackgroundCard padding={6}>
                         <Typography variant="h1" gutterBottom>
                             Heading 1
                         </Typography>
@@ -98,7 +117,7 @@ export default function App() {
                                 </Typography>
                             </CardContent>
                         </Card>
-                    </Container>
+                    </BackgroundCard>
                 </Box>
             </Box>
         </ThemeProvider>
