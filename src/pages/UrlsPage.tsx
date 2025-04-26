@@ -102,7 +102,7 @@ export default function UrlsPage() {
     };
 
     return (
-        <BackgroundCard padding={4}>
+        <BackgroundCard padding={4} width={'100%'}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
                 <Autocomplete<string, true, false, false>
                     multiple

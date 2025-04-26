@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 import {
     Drawer,
     Toolbar,
     IconButton,
     Divider,
     List,
-    ListItemButton,
-    ListItemIcon,
-    ListItemText,
+    Box,
+    Avatar,
+    Typography,
     useTheme,
     styled,
+    ListItemIcon,
+    ListItemText,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -20,15 +22,20 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import LinkIcon from '@mui/icons-material/Link';
 import { useNavigate } from 'react-router-dom';
 import config from '../config/config';
+import { UserInfoDto } from '../model/users.ts';
 
 const DRAWER_WIDTH = 270;
 const COLLAPSED_WIDTH = 60;
 
-const NavItem = styled(ListItemButton, {
+const NavItem = styled('div', {
     shouldForwardProp: (prop) => prop !== 'isSelected',
 })<{ isSelected?: boolean }>(({ theme, isSelected }) => ({
+    display: 'flex',
+    alignItems: 'center',
     paddingTop: theme.spacing(1.5),
     paddingBottom: theme.spacing(1.5),
+    paddingLeft: theme.spacing(3),
+    cursor: 'pointer',
     borderLeft: isSelected ? `4px solid ${theme.palette.primary.main}` : '4px solid transparent',
     backgroundColor: isSelected ? theme.palette.action.selected : 'transparent',
     '&:hover': {
@@ -36,19 +43,46 @@ const NavItem = styled(ListItemButton, {
     },
 }));
 
-const navItems = [
-    { label: 'Short URLs', icon: <LinkIcon />, page: '/urls' },
-    { label: 'URL Analytics', icon: <BarChartIcon />, page: '/analytics' },
-    { label: 'Organization Members', icon: <GroupIcon />, page: '/organization-members' },
-    { label: 'Account Settings', icon: <AccountCircleIcon />, page: '/account-settings' },
-    { label: 'Logout', icon: <LogoutIcon />, page: '/login' },
-];
+export interface SidebarProps {
+    user: UserInfoDto | null;
+    setUser: Dispatch<SetStateAction<UserInfoDto | null>>;
+}
 
-export default function Sidebar() {
+export default function Sidebar({ user, setUser }: SidebarProps) {
     const theme = useTheme();
+    const navigate = useNavigate();
+
     const [open, setOpen] = useState(true);
     const [selected, setSelected] = useState('Short URLs');
-    const navigate = useNavigate();
+
+    useEffect(() => {
+        (async () => {
+            const token = localStorage.getItem(config.accessTokenKey) ?? '';
+            try {
+                const res = await fetch(`${config.apiBase}/user/users/info`, {
+                    headers: { Authorization: token },
+                });
+                if (res.ok) {
+                    const { payload }: { payload: UserInfoDto } = await res.json();
+                    setUser(payload);
+                }
+            } catch (e) {
+                console.error('Could not load user info', e);
+            }
+        })();
+    }, [setUser]);
+
+    const navItems = [
+        { label: 'Short URLs', icon: <LinkIcon />, page: '/urls' },
+        { label: 'URL Analytics', icon: <BarChartIcon />, page: '/analytics' },
+        {
+            label: 'Organization Members',
+            icon: <GroupIcon />,
+            page: '/organization-members',
+        },
+        { label: 'Account Settings', icon: <AccountCircleIcon />, page: '/account' },
+        { label: 'Logout', icon: <LogoutIcon />, page: '/login' },
+    ];
 
     return (
         <Drawer
@@ -77,7 +111,7 @@ export default function Sidebar() {
                     px: theme.spacing(1),
                 }}
             >
-                <IconButton onClick={() => setOpen(!open)} size="small">
+                <IconButton onClick={() => setOpen((o) => !o)} size="small">
                     {open ? <ChevronLeftIcon /> : <MenuIcon />}
                 </IconButton>
             </Toolbar>
@@ -138,6 +172,43 @@ export default function Sidebar() {
                     );
                 })}
             </List>
+
+            <Box sx={{ flexGrow: 1 }} />
+
+            {user && (
+                <Box
+                    sx={{
+                        width: '100%',
+                        px: open ? 3 : 0,
+                        mb: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexDirection: open ? 'row' : 'column',
+                        justifyContent: open ? 'flex-start' : 'center',
+                        textAlign: open ? 'left' : 'center',
+                        gap: 1.5,
+                    }}
+                >
+                    <Avatar
+                        src={user.profilePictureUrl ?? undefined}
+                        sx={{
+                            width: open ? 40 : 32,
+                            height: open ? 40 : 32,
+                            border: `2px solid ${theme.palette.divider}`,
+                        }}
+                    />
+                    {open && (
+                        <Box>
+                            <Typography variant="body2">
+                                {user.firstname} {user.lastname || ''}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                {user.email}
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
+            )}
         </Drawer>
     );
 }

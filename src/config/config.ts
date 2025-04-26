@@ -8,10 +8,11 @@ interface AppConfig {
 
 const config: AppConfig = {
     darkModeKey: import.meta.env.VITE_DARK_MODE_KEY ?? 'darkMode',
-    apiBase: import.meta.env.VITE_API_BASE_URL ?? '',
-    accessTokenKey: import.meta.env.VITE_ACCESS_TOKEN_KEY ?? '',
-    refreshTokenKey: import.meta.env.VITE_REFRESH_TOKEN_KEY ?? '',
-    currentOrganizationSlugKey: import.meta.env.VITE_CURRENT_ORGANIZATION_SLUG_KEY ?? '',
+    apiBase: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/shrt/v0',
+    accessTokenKey: import.meta.env.VITE_ACCESS_TOKEN_KEY ?? 'accessToken',
+    refreshTokenKey: import.meta.env.VITE_REFRESH_TOKEN_KEY ?? 'refreshToken',
+    currentOrganizationSlugKey:
+        import.meta.env.VITE_CURRENT_ORGANIZATION_SLUG_KEY ?? 'currentOrganizationSlugKey',
 };
 
 export default config;

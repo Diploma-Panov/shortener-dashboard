@@ -5,8 +5,10 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import { Route, Routes } from 'react-router-dom';
 import UrlsPage from '../pages/UrlsPage';
 import DemoPage from '../pages/DemoPage';
-import { Dispatch, SetStateAction } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import NotFoundPage from '../pages/NotFoundPage.tsx';
+import UserInfoPage from '../pages/UserInfoPage.tsx';
+import { UserInfoDto } from '../model/users.ts';
 
 export interface AuthenticatedLayoutProps {
     darkMode: boolean;
@@ -14,6 +16,8 @@ export interface AuthenticatedLayoutProps {
 }
 
 const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps) => {
+    const [user, setUser] = useState<UserInfoDto | null>(null);
+
     return (
         <Box
             sx={{
@@ -24,7 +28,7 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 display: 'flex',
             }}
         >
-            <Sidebar />
+            <Sidebar user={user} setUser={setUser} />
 
             <Box
                 component="main"
@@ -60,6 +64,10 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 >
                     <Routes>
                         <Route path={'/urls'} element={<UrlsPage />} />
+                        <Route
+                            path={'/account'}
+                            element={<UserInfoPage user={user} setUser={setUser} />}
+                        />
                         <Route path={'/demo'} element={<DemoPage />} />
                         <Route path="*" element={<NotFoundPage />} />
                     </Routes>
