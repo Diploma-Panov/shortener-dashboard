@@ -25,7 +25,8 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.5.2",
     "react-simple-maps": "^3.0.0",
-    "topojson-client": "^3.1.0"
+    "topojson-client": "^3.1.0",
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",

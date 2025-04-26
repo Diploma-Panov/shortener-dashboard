@@ -13,15 +13,15 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import FolderIcon from '@mui/icons-material/Folder';
-import BugReportIcon from '@mui/icons-material/BugReport';
-import SettingsIcon from '@mui/icons-material/Settings';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import GroupIcon from '@mui/icons-material/Group';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LinkIcon from '@mui/icons-material/Link';
 import { useNavigate } from 'react-router-dom';
+import config from '../config/config';
 
-const DRAWER_WIDTH = 210;
+const DRAWER_WIDTH = 270;
 const COLLAPSED_WIDTH = 60;
 
 const NavItem = styled(ListItemButton, {
@@ -38,17 +38,16 @@ const NavItem = styled(ListItemButton, {
 
 const navItems = [
     { label: 'Short URLs', icon: <LinkIcon />, page: '/urls' },
-    { label: 'Dashboard', icon: <DashboardIcon />, page: '/demo' },
-    { label: 'Projects', icon: <FolderIcon />, page: '/demo' },
-    { label: 'Issues', icon: <BugReportIcon />, page: '/demo' },
-    { label: 'Settings', icon: <SettingsIcon />, page: '/demo' },
-    { label: 'Logout', icon: <LogoutIcon />, page: '/demo' },
+    { label: 'URL Analytics', icon: <BarChartIcon />, page: '/analytics' },
+    { label: 'Organization Members', icon: <GroupIcon />, page: '/organization-members' },
+    { label: 'Account Settings', icon: <AccountCircleIcon />, page: '/account-settings' },
+    { label: 'Logout', icon: <LogoutIcon />, page: '/login' },
 ];
 
 export default function Sidebar() {
     const theme = useTheme();
     const [open, setOpen] = useState(true);
-    const [selected, setSelected] = useState('Home');
+    const [selected, setSelected] = useState('Short URLs');
     const navigate = useNavigate();
 
     return (
@@ -94,6 +93,12 @@ export default function Sidebar() {
                             isSelected={isSelected}
                             onClick={() => {
                                 setSelected(item.label);
+                                if (item.label === 'Logout') {
+                                    localStorage.removeItem(config.accessTokenKey);
+                                    localStorage.removeItem(config.refreshTokenKey);
+                                    window.location.href = '/login';
+                                    return;
+                                }
                                 navigate(item.page);
                             }}
                             sx={{
@@ -109,7 +114,6 @@ export default function Sidebar() {
                                 sx={{
                                     minWidth: 0,
                                     mr: open ? theme.spacing(2) : 0,
-                                    // mx: open ? 0 : 'auto',
                                     justifyContent: 'center',
                                     color: isSelected
                                         ? theme.palette.primary.main

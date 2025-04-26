@@ -71,11 +71,6 @@ export const darkTheme = createTheme({
     components: {
         MuiAppBar: {
             defaultProps: { color: 'transparent', elevation: 0 },
-            styleOverrides: {
-                root: ({ theme }) => ({
-                    backgroundColor: theme.palette.background.default,
-                }),
-            },
         },
         MuiPaper: {
             styleOverrides: {

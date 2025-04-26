@@ -12,17 +12,11 @@ const BackgroundCard: FC<BackgroundCardProps> = ({ children, maxWidth = '90vw', 
     const borderColor = theme.palette.divider;
 
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                px: 2,
-                py: 4,
-            }}
-        >
+        <Box sx={{ display: 'flex', justifyContent: 'center', px: 2, py: 4 }}>
             <Paper
                 elevation={0}
                 sx={{
+                    position: 'relative',
                     width: '100%',
                     maxWidth,
                     backgroundColor: theme.palette.background.paper,

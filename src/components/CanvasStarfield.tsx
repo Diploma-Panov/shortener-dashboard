@@ -32,11 +32,9 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
         const ctx = canvas.getContext('2d')!;
         const parent = canvas.parentElement!;
 
-        // draw using theme-based colors
         function draw(ofx: number, ofy: number) {
             ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
-            // Distant stars
             ctx.fillStyle = dark ? '#FFFFFF' : PURPLE_FADE;
             starsRef.current.far.forEach((s) => {
                 ctx.globalAlpha = dark ? s.opacity : 1;
@@ -45,7 +43,6 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
                 ctx.fill();
             });
 
-            // Close stars
             ctx.fillStyle = dark ? '#FFFFFF' : PURPLE;
             starsRef.current.near.forEach((s) => {
                 ctx.globalAlpha = dark ? s.opacity : 1;
@@ -57,7 +54,6 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
             });
         }
 
-        // handle resize & initial star generation
         const dpr = window.devicePixelRatio || 1;
         function resize() {
             const { width, height } = parent.getBoundingClientRect();
@@ -69,7 +65,6 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
         window.addEventListener('resize', resize);
         resize();
 
-        // generate stars once
         const farStars: Star[] = Array.from({ length: countFar }).map(() => ({
             x: Math.random() * canvas.clientWidth,
             y: Math.random() * canvas.clientHeight,
@@ -84,7 +79,6 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
         }));
         starsRef.current = { far: farStars, near: nearStars };
 
-        // parallax on mouse move
         let rafId: number;
         let offsetX = 0,
             offsetY = 0;
@@ -107,7 +101,16 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
     }, [countFar, countNear, parallaxFar, parallaxNear, dark]);
 
     return (
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} />
+        <canvas
+            ref={canvasRef}
+            style={{
+                position: 'absolute',
+                inset: 0,
+                pointerEvents: 'none',
+                height: '100vh',
+                width: '100vw',
+            }}
+        />
     );
 };
 

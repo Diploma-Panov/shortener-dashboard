@@ -1,30 +1,21 @@
 import { useEffect, useState } from 'react';
-import {
-    ThemeProvider,
-    CssBaseline,
-    AppBar,
-    Toolbar,
-    Typography,
-    IconButton,
-    Switch,
-    Box,
-} from '@mui/material';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { ThemeProvider, CssBaseline } from '@mui/material';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
+import config from './config/config';
+import { darkTheme, lightTheme } from './common/theme';
+import AuthenticatedLayout from './layouts/AuthenticatedLayout';
 import CanvasStarfield from './components/CanvasStarfield';
-import config from './config/config.ts';
-import { darkTheme, lightTheme } from './common/theme.ts';
-import Sidebar from './components/Sidebar.tsx';
-import { Route, Routes } from 'react-router-dom';
-import UrlsPage from './pages/UrlsPage.tsx';
-import DemoPage from './pages/DemoPage.tsx';
+import LoginPage from './pages/LoginPage';
+import { getAccessToken } from './auth/auth';
+import SignupPage from './pages/SignupPage.tsx';
 
 export default function App() {
     const [darkMode, setDarkMode] = useState(
         !localStorage.getItem(config.darkModeKey) ||
             localStorage.getItem(config.darkModeKey) === 'true',
     );
+    const isAuthenticated = getAccessToken() !== null;
 
     useEffect(() => {
         localStorage.setItem(config.darkModeKey, darkMode ? 'true' : 'false');
@@ -34,62 +25,43 @@ export default function App() {
         <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
 
-            <Box
-                sx={{
-                    position: 'relative',
-                    minHeight: '100vh',
-                    bgcolor: 'background.default',
-                    overflow: 'hidden',
-                    display: 'flex',
-                }}
-            >
-                <CanvasStarfield
-                    countFar={4000}
-                    countNear={8000}
-                    parallaxFar={2}
-                    parallaxNear={4}
-                    dark={darkMode}
-                />
+            <CanvasStarfield
+                countFar={4000}
+                countNear={8000}
+                parallaxFar={2}
+                parallaxNear={4}
+                dark={darkMode}
+            />
 
-                <Sidebar />
+            <Routes>
+                {!isAuthenticated && (
+                    <>
+                        <Route
+                            path="/login"
+                            element={<LoginPage darkMode={darkMode} setDarkMode={setDarkMode} />}
+                        />
+                        <Route
+                            path="/signup"
+                            element={<SignupPage darkMode={darkMode} setDarkMode={setDarkMode} />}
+                        />
+                        <Route path="*" element={<Navigate to="/login" replace />} />
+                    </>
+                )}
 
-                <Box
-                    component="main"
-                    sx={{
-                        flexGrow: 1,
-                        p: 0,
-                        position: 'relative',
-                        zIndex: 1,
-                    }}
-                >
-                    <AppBar position="static" elevation={0} style={{ borderLeft: 'none' }}>
-                        <Toolbar>
-                            <Typography variant="h5" sx={{ flexGrow: 1 }}>
-                                Shortener Dashboard
-                            </Typography>
-                            <IconButton onClick={() => setDarkMode((v) => !v)} color="inherit">
-                                {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                            </IconButton>
-                            <Switch
-                                checked={darkMode}
-                                onChange={() => setDarkMode((v) => !v)}
-                                color="secondary"
-                            />
-                        </Toolbar>
-                    </AppBar>
-
-                    <Box
-                        sx={{
-                            px: 3,
-                        }}
-                    >
-                        <Routes>
-                            <Route path={'/urls'} element={<UrlsPage />} />
-                            <Route path={'/demo'} element={<DemoPage />} />
-                        </Routes>
-                    </Box>
-                </Box>
-            </Box>
+                {isAuthenticated && (
+                    <>
+                        <Route
+                            path="/*"
+                            element={
+                                <AuthenticatedLayout
+                                    darkMode={darkMode}
+                                    setDarkMode={setDarkMode}
+                                />
+                            }
+                        />
+                    </>
+                )}
+            </Routes>
         </ThemeProvider>
     );
 }
