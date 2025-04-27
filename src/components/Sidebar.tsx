@@ -36,9 +36,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import config from '../config/config';
 import { UserInfoDto } from '../model/users.ts';
 import { hasRole } from '../auth/auth.ts';
-import { MemberRole } from '../model/auth.ts';
+import { MemberRole, TokenResponseDto } from '../model/auth.ts';
 import { OrganizationDto } from '../model/organizations.ts';
 import { z } from 'zod';
+import { ErrorResponseElement } from '../model/common.ts';
+import { ApiClient } from '../common/api.ts';
+import * as _ from 'lodash';
 
 const createOrgSchema = z.object({
     name: z.string().nonempty('Name is required'),
@@ -109,22 +112,18 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
             const parsed = createOrgSchema.parse(input);
             setErrors({});
             setCreating(true);
-            const token = localStorage.getItem(config.accessTokenKey) ?? '';
-            const res = await fetch(`${config.apiBase}/user/organizations`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: token },
-                body: JSON.stringify(parsed),
-            });
-            if (res.ok) {
-                const { payload }: { payload: { accessToken: string; refreshToken?: string } } =
-                    await res.json();
-                localStorage.setItem(config.accessTokenKey, payload.accessToken);
-                localStorage.setItem(config.refreshTokenKey, payload.refreshToken!);
-                localStorage.setItem(config.currentOrganizationSlugKey, input.slug);
-                window.location.href = '/urls';
-            } else {
-                console.error(await res.text());
+
+            const res: TokenResponseDto | ErrorResponseElement =
+                await ApiClient.createOrganization(parsed);
+            if (_.has(res, 'errorType')) {
+                return;
             }
+
+            const payload: TokenResponseDto = res as TokenResponseDto;
+            localStorage.setItem(config.accessTokenKey, payload.accessToken);
+            localStorage.setItem(config.refreshTokenKey, payload.refreshToken!);
+            localStorage.setItem(config.currentOrganizationSlugKey, input.slug);
+            window.location.href = '/urls';
         } catch (err) {
             if (err instanceof z.ZodError) {
                 const fieldErrors: any = {};
@@ -140,18 +139,14 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
 
     useEffect(() => {
         (async () => {
-            const token = localStorage.getItem(config.accessTokenKey) ?? '';
-            try {
-                const res = await fetch(`${config.apiBase}/user/users/info`, {
-                    headers: { Authorization: token },
-                });
-                if (res.ok) {
-                    const { payload }: { payload: UserInfoDto } = await res.json();
-                    setUser(payload);
-                }
-            } catch (e) {
-                console.error('Could not load user info', e);
+            const res: UserInfoDto | ErrorResponseElement = await ApiClient.getUserInfo();
+
+            if (_.has(res, 'errorType')) {
+                return;
             }
+
+            const payload: UserInfoDto = res as UserInfoDto;
+            setUser(payload);
         })();
     }, [setUser]);
 

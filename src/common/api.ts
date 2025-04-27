@@ -7,7 +7,7 @@ import {
     MessageResponseDto,
     ServiceErrorType,
 } from '../model/common.ts';
-import { TokenResponseDto } from '../model/auth.ts';
+import { JwtUserSubject, TokenResponseDto } from '../model/auth.ts';
 import {
     UpdateUserInfoDto,
     UpdateUserProfilePictureDto,
@@ -36,12 +36,15 @@ import {
     ShortUrlsSearchParams,
 } from '../model/urls.ts';
 import { GlobalStatisticsDto, PeriodCountsDto } from '../model/statistics.ts';
+import { getAccessToken } from '../auth/auth.ts';
 
 const API_BASE = config.apiBase;
 const API_PUBLIC = '/public/users';
 const API_USER = '/user';
 
 export class ApiClient {
+    private static refreshTokenPromise: Promise<string> | null = null;
+
     private static async apiRequest<T>(
         cfg: AxiosRequestConfig & { _retry?: boolean } = {},
     ): Promise<T | ErrorResponseElement> {
@@ -85,33 +88,41 @@ export class ApiClient {
 
         try {
             const resp = await axios.request<AbstractResponseDto<T> | ErrorResponseDto>(cfg);
-
             if ((resp.data as ErrorResponseDto).errors) {
                 return handleErrorResponse(resp.data);
             }
-
             return (resp.data as AbstractResponseDto<T>).payload;
         } catch (err: any) {
             const status = err.response?.status;
             const data = err.response?.data;
 
             if (status === 401 && !cfg._retry) {
-                const didRefresh = await this.refreshTokens();
-                if (didRefresh) {
+                if (!this.refreshTokenPromise) {
+                    this.refreshTokenPromise = this.refreshTokens()
+                        .then((success) => {
+                            this.refreshTokenPromise = null;
+                            if (!success) throw new Error('refresh failed');
+                            return localStorage.getItem(config.accessTokenKey)!;
+                        })
+                        .catch(() => {
+                            this.refreshTokenPromise = null;
+                            throw new Error('refresh failed');
+                        });
+                }
+
+                try {
+                    const newToken = await this.refreshTokenPromise;
                     cfg._retry = true;
-                    const newToken = localStorage.getItem(config.accessTokenKey)!;
                     cfg.headers = { ...(cfg.headers || {}), Authorization: newToken };
-                    try {
-                        const retryResp = await axios.request<
-                            AbstractResponseDto<T> | ErrorResponseDto
-                        >(cfg);
-                        if ((retryResp.data as ErrorResponseDto).errors) {
-                            return handleErrorResponse(retryResp.data);
-                        }
-                        return (retryResp.data as AbstractResponseDto<T>).payload;
-                    } catch (retryErr: any) {
-                        return handleErrorResponse(retryErr.response?.data);
+                    const retryResp = await axios.request<
+                        AbstractResponseDto<T> | ErrorResponseDto
+                    >(cfg);
+                    if ((retryResp.data as ErrorResponseDto).errors) {
+                        return handleErrorResponse(retryResp.data);
                     }
+                    return (retryResp.data as AbstractResponseDto<T>).payload;
+                } catch {
+                    return handleErrorResponse(data);
                 }
             }
 
@@ -132,6 +143,12 @@ export class ApiClient {
             const { accessToken, refreshToken } = resp.data.payload;
             localStorage.setItem(config.accessTokenKey, accessToken);
             if (refreshToken) localStorage.setItem(config.refreshTokenKey, refreshToken);
+
+            const { organizations }: JwtUserSubject = getAccessToken()!;
+            const slug: string = organizations[0].slug;
+
+            localStorage.setItem(config.currentOrganizationSlugKey, slug);
+
             return true;
         } catch {
             return false;
@@ -163,6 +180,7 @@ export class ApiClient {
     }
 
     static refreshToken(): Promise<TokenResponseDto | ErrorResponseElement> {
+        console.log('refreshToken');
         return this.apiRequest<TokenResponseDto>({
             method: 'GET',
             url: `${API_PUBLIC}/refresh-token`,

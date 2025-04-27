@@ -7,7 +7,7 @@ import { darkTheme, lightTheme } from './common/theme';
 import AuthenticatedLayout from './layouts/AuthenticatedLayout';
 import CanvasStarfield from './components/CanvasStarfield';
 import LoginPage from './pages/LoginPage';
-import { getAccessToken } from './auth/auth';
+import { getAccessToken, getRefreshToken } from './auth/auth';
 import SignupPage from './pages/SignupPage.tsx';
 
 export default function App() {
@@ -15,7 +15,7 @@ export default function App() {
         !localStorage.getItem(config.darkModeKey) ||
             localStorage.getItem(config.darkModeKey) === 'true',
     );
-    const isAuthenticated = getAccessToken() !== null;
+    const isAuthenticated = getAccessToken() !== null || getRefreshToken();
 
     useEffect(() => {
         localStorage.setItem(config.darkModeKey, darkMode ? 'true' : 'false');

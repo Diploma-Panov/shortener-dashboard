@@ -111,7 +111,7 @@ export default function UrlsPage() {
 
     useEffect(() => {
         fetchData();
-    }, [page, perPage, tagsFilter, stateFilter, orderBy, orderDir, fetchData]);
+    }, [page, perPage, tagsFilter, stateFilter, orderBy, orderDir]);
 
     const handleSort = (_: SyntheticEvent, prop: 'originalUrl' | 'shortUrl') => {
         const isAsc = orderBy === prop && orderDir === 'asc';

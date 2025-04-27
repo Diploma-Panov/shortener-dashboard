@@ -12,6 +12,9 @@ import { UserInfoDto } from '../model/users.ts';
 import OrganizationSettingsPage from '../pages/OrganizationSettingsPage.tsx';
 import { OrganizationDto, OrganizationsListDto } from '../model/organizations.ts';
 import config from '../config/config.ts';
+import { ApiClient } from '../common/api.ts';
+import { ErrorResponseElement } from '../model/common.ts';
+import * as _ from 'lodash';
 
 export interface AuthenticatedLayoutProps {
     darkMode: boolean;
@@ -26,33 +29,25 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
     useEffect(() => {
         (async () => {
             const slug = localStorage.getItem(config.currentOrganizationSlugKey)!;
-            const res = await fetch(`${config.apiBase}/user/organizations/${slug}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: localStorage.getItem(config.accessTokenKey) ?? '',
-                },
-            });
-            if (res.ok) {
-                const { payload }: { payload: OrganizationDto } = await res.json();
-                setCurrentOrg(payload);
+            const res: OrganizationDto | ErrorResponseElement =
+                await ApiClient.getOrganizationBySlug(slug);
+
+            if (_.has(res, 'errorType')) {
+                return;
             }
+
+            const payload: OrganizationDto = res as OrganizationDto;
+            setCurrentOrg(payload);
         })();
 
         (async () => {
-            const res = await fetch(`${config.apiBase}/user/organizations?q=10000`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: localStorage.getItem(config.accessTokenKey) ?? '',
-                },
-            });
-            if (res.ok) {
-                const {
-                    payload: { entries },
-                }: { payload: OrganizationsListDto } = await res.json();
-                setOrganizations(entries);
+            const res: OrganizationsListDto | ErrorResponseElement =
+                await ApiClient.getUserOrganizations({ q: 10000 });
+            if (_.has(res, 'errorType')) {
+                return;
             }
+            const { entries }: OrganizationsListDto = res as OrganizationsListDto;
+            setOrganizations(entries);
         })();
     }, [setCurrentOrg, setOrganizations]);
 
