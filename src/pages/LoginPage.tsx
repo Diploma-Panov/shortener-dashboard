@@ -16,8 +16,11 @@ import BackgroundCard from '../components/BackgroundCard';
 import moon from '../images/moon.png';
 import sun from '../images/sun.png';
 import config from '../config/config';
-import { AbstractResponseDto } from '../model/common.ts';
+import { ErrorResponseElement } from '../model/common.ts';
 import { TokenResponseDto } from '../model/auth.ts';
+import { getAccessToken } from '../auth/auth.ts';
+import { ApiClient } from '../common/api.ts';
+import * as _ from 'lodash';
 
 type LoginForm = {
     username: string;
@@ -58,22 +61,17 @@ const LoginPage: FC<LoginPageProps> = ({ darkMode, setDarkMode }) => {
         }
 
         try {
-            const response = await fetch(`${config.apiBase}/public/users/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                setErrors({ general: errorData.message || 'Login failed' });
+            const tokenResponse: TokenResponseDto | ErrorResponseElement =
+                await ApiClient.login(form);
+            if (_.has(tokenResponse, 'errorType')) {
+                setErrors({ general: 'Login failed' });
                 return;
             }
-            const data: AbstractResponseDto<TokenResponseDto> =
-                (await response.json()) as AbstractResponseDto<TokenResponseDto>;
-            localStorage.setItem(config.accessTokenKey, data.payload.accessToken);
-            if (data.payload.refreshToken) {
-                localStorage.setItem(config.refreshTokenKey, data.payload.refreshToken);
-            }
+            const { accessToken, refreshToken } = tokenResponse as TokenResponseDto;
+            localStorage.setItem(config.accessTokenKey, accessToken);
+            localStorage.setItem(config.refreshTokenKey, refreshToken!);
+            const { organizations } = getAccessToken()!;
+            localStorage.setItem(config.currentOrganizationSlugKey, organizations[0].slug);
             window.location.href = '/urls';
         } catch (e) {
             console.error('Login error:', e);

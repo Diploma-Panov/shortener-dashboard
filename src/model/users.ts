@@ -17,3 +17,19 @@ export interface UpdateUserInfoDto {
 export interface UpdateUserProfilePictureDto {
     newProfilePictureBase64: string;
 }
+
+export interface UserLoginDto {
+    username: string;
+    password: string;
+}
+
+export interface UserSignupDto {
+    username: string;
+    password: string;
+    firstName: string;
+    lastName: string | null;
+    companyName: string | null;
+    profilePictureBase64: string | null;
+    registrationScope: 'SHORTENER_SCOPE';
+    siteUrl: string | null;
+}

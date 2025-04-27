@@ -10,6 +10,10 @@ export interface AbstractResponseDto<T> {
     payloadType: string;
 }
 
+export interface MessageResponseDto {
+    message: string;
+}
+
 export enum ServiceErrorType {
     PLATFORM_ERROR = 'PLATFORM_ERROR',
     ACCESS_TOKEN_EXPIRED = 'ACCESS_TOKEN_EXPIRED',

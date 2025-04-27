@@ -5,10 +5,13 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import { Route, Routes } from 'react-router-dom';
 import UrlsPage from '../pages/UrlsPage';
 import DemoPage from '../pages/DemoPage';
-import { Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import NotFoundPage from '../pages/NotFoundPage.tsx';
 import UserInfoPage from '../pages/UserInfoPage.tsx';
 import { UserInfoDto } from '../model/users.ts';
+import OrganizationSettingsPage from '../pages/OrganizationSettingsPage.tsx';
+import { OrganizationDto, OrganizationsListDto } from '../model/organizations.ts';
+import config from '../config/config.ts';
 
 export interface AuthenticatedLayoutProps {
     darkMode: boolean;
@@ -17,6 +20,41 @@ export interface AuthenticatedLayoutProps {
 
 const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps) => {
     const [user, setUser] = useState<UserInfoDto | null>(null);
+    const [currentOrg, setCurrentOrg] = useState<OrganizationDto | null>(null);
+    const [organizations, setOrganizations] = useState<OrganizationDto[] | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            const slug = localStorage.getItem(config.currentOrganizationSlugKey)!;
+            const res = await fetch(`${config.apiBase}/user/organizations/${slug}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: localStorage.getItem(config.accessTokenKey) ?? '',
+                },
+            });
+            if (res.ok) {
+                const { payload }: { payload: OrganizationDto } = await res.json();
+                setCurrentOrg(payload);
+            }
+        })();
+
+        (async () => {
+            const res = await fetch(`${config.apiBase}/user/organizations?q=10000`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: localStorage.getItem(config.accessTokenKey) ?? '',
+                },
+            });
+            if (res.ok) {
+                const {
+                    payload: { entries },
+                }: { payload: OrganizationsListDto } = await res.json();
+                setOrganizations(entries);
+            }
+        })();
+    }, [setCurrentOrg, setOrganizations]);
 
     return (
         <Box
@@ -28,7 +66,7 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 display: 'flex',
             }}
         >
-            <Sidebar user={user} setUser={setUser} />
+            <Sidebar user={user} setUser={setUser} org={currentOrg} orgs={organizations} />
 
             <Box
                 component="main"
@@ -64,6 +102,16 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 >
                     <Routes>
                         <Route path={'/urls'} element={<UrlsPage />} />
+                        <Route
+                            path={'/organization'}
+                            element={
+                                <OrganizationSettingsPage
+                                    org={currentOrg}
+                                    setOrg={setCurrentOrg}
+                                    setOrgs={setOrganizations}
+                                />
+                            }
+                        />
                         <Route
                             path={'/account'}
                             element={<UserInfoPage user={user} setUser={setUser} />}

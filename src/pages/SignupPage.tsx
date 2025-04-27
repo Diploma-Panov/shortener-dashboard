@@ -17,8 +17,10 @@ import BackgroundCard from '../components/BackgroundCard';
 import moon from '../images/moon.png';
 import sun from '../images/sun.png';
 import config from '../config/config';
-import { AbstractResponseDto, ErrorResponseDto, ServiceErrorType } from '../model/common';
+import { ErrorResponseElement, ServiceErrorType } from '../model/common';
 import { TokenResponseDto } from '../model/auth';
+import { ApiClient } from '../common/api.ts';
+import * as _ from 'lodash';
 
 interface SignupPageProps {
     darkMode: boolean;
@@ -39,11 +41,11 @@ const signupSchema = z.object({
         .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
         .refine((val) => !/\s/.test(val), { message: 'Password must not contain whitespace' }),
     firstName: z.string().nonempty('First name is required').max(255),
-    lastName: z.string().max(255).optional(),
-    companyName: z.string().max(255).optional(),
-    profilePictureBase64: z.string().base64({ message: 'Invalid base64 image' }).optional(),
+    lastName: z.string().max(255).nullable(),
+    companyName: z.string().max(255).nullable(),
+    profilePictureBase64: z.string().base64({ message: 'Invalid base64 image' }).nullable(),
     registrationScope: z.literal('SHORTENER_SCOPE'),
-    siteUrl: z.string().url('Invalid URL').optional(),
+    siteUrl: z.string().url('Invalid URL').nullable(),
 });
 
 type SignupForm = z.infer<typeof signupSchema>;
@@ -56,11 +58,11 @@ const SignupPage: FC<SignupPageProps> = ({ darkMode, setDarkMode }) => {
         username: '',
         password: '',
         firstName: '',
-        lastName: undefined,
-        companyName: undefined,
-        profilePictureBase64: undefined,
+        lastName: null,
+        companyName: null,
+        profilePictureBase64: null,
         registrationScope: 'SHORTENER_SCOPE',
-        siteUrl: undefined,
+        siteUrl: null,
     });
     const [errors, setErrors] = useState<Partial<Record<keyof SignupForm | 'general', string>>>({});
     const [loading, setLoading] = useState(false);
@@ -84,15 +86,12 @@ const SignupPage: FC<SignupPageProps> = ({ darkMode, setDarkMode }) => {
 
         setLoading(true);
         try {
-            const resp = await fetch(`${config.apiBase}/public/users/signup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(parse.data),
-            });
-            if (!resp.ok) {
-                const data: ErrorResponseDto = (await resp.json()) as ErrorResponseDto;
+            const tokensResponse: TokenResponseDto | ErrorResponseElement = await ApiClient.signup(
+                parse.data,
+            );
 
-                if (data.errors[0].errorType === ServiceErrorType.ENTITY_ALREADY_EXISTS) {
+            if (_.has(tokensResponse, 'errorType')) {
+                if (tokensResponse.errorType === ServiceErrorType.ENTITY_ALREADY_EXISTS) {
                     setErrors({ general: 'User with this email already exists' });
                 } else {
                     setErrors({ general: 'Signup failed' });
@@ -100,11 +99,10 @@ const SignupPage: FC<SignupPageProps> = ({ darkMode, setDarkMode }) => {
                 setLoading(false);
                 return;
             }
-            const response: AbstractResponseDto<TokenResponseDto> = await resp.json();
-            localStorage.setItem(config.accessTokenKey, response.payload.accessToken);
-            if (response.payload.refreshToken) {
-                localStorage.setItem(config.refreshTokenKey, response.payload.refreshToken);
-            }
+
+            const { accessToken, refreshToken } = tokensResponse as TokenResponseDto;
+            localStorage.setItem(config.accessTokenKey, accessToken);
+            localStorage.setItem(config.refreshTokenKey, refreshToken!);
             window.location.href = '/urls';
         } catch (e) {
             setErrors({ general: 'Network error' });

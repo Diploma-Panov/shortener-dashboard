@@ -16,9 +16,11 @@ import {
 } from '@mui/material';
 import Cropper, { Area } from 'react-easy-crop';
 import CloseIcon from '@mui/icons-material/Close';
-import config from '../config/config';
 import { UpdateUserInfoDto, UpdateUserProfilePictureDto, UserInfoDto } from '../model/users';
 import BackgroundCard from '../components/BackgroundCard';
+import { ApiClient } from '../common/api.ts';
+import { ErrorResponseElement } from '../model/common.ts';
+import * as _ from 'lodash';
 
 interface UserInfoProps {
     user: UserInfoDto | null;
@@ -72,14 +74,19 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+    const [processingAvatar, setProcessingAvatar] = useState<boolean>(false);
+    const [saving, setSaving] = useState<boolean>(false);
 
     useEffect(() => {
         (async () => {
-            const token = localStorage.getItem(config.accessTokenKey) ?? '';
-            const res = await fetch(`${config.apiBase}/user/users/info`, {
-                headers: { Authorization: token },
-            });
-            const { payload }: { payload: UserInfoDto } = await res.json();
+            const res: UserInfoDto | ErrorResponseElement = await ApiClient.getUserInfo();
+
+            if (_.has(res, 'errorType')) {
+                return;
+            }
+
+            const payload: UserInfoDto = res as UserInfoDto;
+
             setUser(payload);
             setFirstname(payload.firstname);
             setLastname(payload.lastname);
@@ -89,27 +96,35 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
         })();
     }, [setUser]);
 
+    const handleDeleteAvatar = async () => {
+        setProcessingAvatar(true);
+        const res: UserInfoDto | ErrorResponseElement = await ApiClient.deleteProfilePicture();
+
+        if (_.has(res, 'errorType')) {
+            return;
+        }
+
+        const payload: UserInfoDto = res as UserInfoDto;
+        setUser(payload);
+        setProcessingAvatar(false);
+    };
+
     const handleSaveInfo = async () => {
         setUpdatingInfo(true);
-        const token = localStorage.getItem(config.accessTokenKey) ?? '';
         const dto: UpdateUserInfoDto = {
             newFirstname: firstname || null,
             newLastname: lastname,
             newCompanyName: company,
             newEmail: email || null,
         };
-        const res = await fetch(`${config.apiBase}/user/users/info`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: token,
-            },
-            body: JSON.stringify(dto),
-        });
-        if (res.ok) {
-            const { payload }: { payload: UserInfoDto } = await res.json();
-            setUser(payload);
+        const res: UserInfoDto | ErrorResponseElement = await ApiClient.updateUserInfo(dto);
+
+        if (_.has(res, 'errorType')) {
+            return;
         }
+
+        const payload: UserInfoDto = res as UserInfoDto;
+        setUser(payload);
         setUpdatingInfo(false);
     };
 
@@ -137,23 +152,20 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
     };
 
     const handleUploadPicture = async () => {
+        setSaving(true);
         if (!croppedImage) return;
-        const token = localStorage.getItem(config.accessTokenKey) ?? '';
         const base64 = croppedImage.split(',')[1];
         const dto: UpdateUserProfilePictureDto = { newProfilePictureBase64: base64 };
-        const res = await fetch(`${config.apiBase}/user/users/picture`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: token,
-            },
-            body: JSON.stringify(dto),
-        });
-        if (res.ok) {
-            const { payload }: { payload: UserInfoDto } = await res.json();
-            setUser(payload);
-            setCroppedImage(null);
+        const res: UserInfoDto | ErrorResponseElement = await ApiClient.updateProfilePicture(dto);
+
+        if (_.has(res, 'errorType')) {
+            return;
         }
+
+        const payload: UserInfoDto = res as UserInfoDto;
+        setUser(payload);
+        setCroppedImage(null);
+        setSaving(false);
     };
 
     if (loading) {
@@ -200,7 +212,17 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
                             </Button>
                             {croppedImage && (
                                 <Button variant="contained" onClick={handleUploadPicture} fullWidth>
-                                    Upload Cropped
+                                    {saving ? 'Uploading...' : 'Upload Cropped'}
+                                </Button>
+                            )}
+                            {user?.profilePictureUrl && !croppedImage && (
+                                <Button
+                                    variant="text"
+                                    color="error"
+                                    fullWidth
+                                    onClick={handleDeleteAvatar}
+                                >
+                                    {processingAvatar ? 'Removing…' : 'Remove Picture'}
                                 </Button>
                             )}
                         </Box>

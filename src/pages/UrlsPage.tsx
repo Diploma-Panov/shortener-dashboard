@@ -16,7 +16,9 @@ import {
 import BackgroundCard from '../components/BackgroundCard';
 import { ShortUrlDto, ShortUrlsListDto, ShortUrlsSearchParams, ShortUrlState } from '../model/urls';
 import config from '../config/config';
-import { AbstractResponseDto } from '../model/common';
+import { ErrorResponseElement } from '../model/common';
+import { ApiClient } from '../common/api.ts';
+import * as _ from 'lodash';
 
 const STATE_LABELS: Record<ShortUrlState, string> = {
     [ShortUrlState.PENDING]: 'Pending',
@@ -60,28 +62,38 @@ export default function UrlsPage() {
                 sb: orderBy,
                 dir: orderDir,
             };
-            const qs = new URLSearchParams();
-            if (params.tags) qs.append('tags', params.tags.join(','));
-            if (params.s) qs.append('s', params.s.join(','));
-            if (params.t) qs.append('t', params.t.join(','));
-            if (params.sb) qs.append('sb', params.sb);
-            if (params.dir) qs.append('dir', params.dir);
-            if (params.p) qs.append('p', params.p.toString());
-            if (params.q) qs.append('q', params.q.toString());
+            const qs: ShortUrlsSearchParams = {
+                p: params.p,
+                q: params.q,
+                tags: params.tags,
+                s: params.s,
+                t: params.t,
+                sb: params.sb,
+                dir: params.dir,
+            };
 
-            const resEntries = await fetch(
-                `${config.apiBase}/user/organizations/test-user-149126240-mpanov-com/urls?${qs}`,
-            );
-            const dataEntries: AbstractResponseDto<ShortUrlsListDto> = await resEntries.json();
-            setEntries(dataEntries.payload.entries);
-            setTotal(dataEntries.payload.total);
-            setPerPage(dataEntries.payload.perPage);
+            const slug: string = localStorage.getItem(config.currentOrganizationSlugKey)!;
+            const resEntries: ShortUrlsListDto | ErrorResponseElement =
+                await ApiClient.getShortUrls(slug, qs);
 
-            const resTags = await fetch(
-                `${config.apiBase}/user/organizations/test-user-149126240-mpanov-com/urls/tags`,
-            );
-            const resData: AbstractResponseDto<string[]> = await resTags.json();
-            setAllTags(resData.payload);
+            if (_.has(resEntries, 'errorType')) {
+                return;
+            }
+
+            const list: ShortUrlsListDto = resEntries as ShortUrlsListDto;
+            setEntries(list.entries);
+            setTotal(list.total);
+            setPerPage(list.perPage);
+
+            const resTags: string[] | ErrorResponseElement = await ApiClient.getTags(slug);
+
+            if (_.has(resTags, 'errorType')) {
+                setLoading(false);
+                return;
+            }
+
+            const tags: string[] = resTags as string[];
+            setAllTags(tags);
 
             setLoading(false);
         };
