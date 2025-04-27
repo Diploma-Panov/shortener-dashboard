@@ -46,6 +46,27 @@ export class ApiClient {
         cfg: AxiosRequestConfig & { _retry?: boolean } = {},
     ): Promise<T | ErrorResponseElement> {
         cfg.baseURL = cfg.baseURL || API_BASE;
+
+        if (cfg.params) {
+            cfg.paramsSerializer = {
+                serialize: (params) => {
+                    const parts: string[] = [];
+                    Object.entries(params).forEach(([key, value]) => {
+                        if (Array.isArray(value)) {
+                            parts.push(
+                                `${encodeURIComponent(key)}=${encodeURIComponent(value.join(','))}`,
+                            );
+                        } else if (value !== undefined && value !== null) {
+                            parts.push(
+                                `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+                            );
+                        }
+                    });
+                    return parts.join('&');
+                },
+            };
+        }
+
         const token = localStorage.getItem(config.accessTokenKey);
         if (token) {
             cfg.headers = { ...(cfg.headers || {}), Authorization: token };

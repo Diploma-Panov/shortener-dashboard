@@ -288,51 +288,41 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: open ? 'flex-start' : 'center',
-                        gap: 1.5,
                         cursor: 'pointer',
                         overflow: 'hidden',
                     }}
                     onClick={(e) => setAnchorEl(e.currentTarget)}
                 >
-                    {(() => {
-                        return (
-                            <>
-                                <Avatar
-                                    src={org?.avatarUrl || undefined}
-                                    sx={{
-                                        width: open ? 40 : 32,
-                                        height: open ? 40 : 32,
-                                        border: `2px solid ${theme.palette.divider}`,
-                                    }}
-                                />
+                    <Avatar
+                        src={org?.avatarUrl || undefined}
+                        sx={{
+                            width: open ? 40 : 32,
+                            height: open ? 40 : 32,
+                            border: `2px solid ${theme.palette.divider}`,
+                        }}
+                    />
 
-                                {open && (
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            overflow: 'hidden',
-                                        }}
-                                    >
-                                        <Typography
-                                            variant="body2"
-                                            noWrap
-                                            sx={{
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap',
-                                            }}
-                                        >
-                                            {org?.name}
-                                        </Typography>
-                                        <ExpandMoreIcon fontSize="small" />
-                                    </Box>
-                                )}
-                            </>
-                        );
-                    })()}
+                    {open && (
+                        <>
+                            <Typography
+                                variant="body2"
+                                noWrap
+                                sx={{
+                                    flexGrow: 1,
+                                    ml: 1.5,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {org?.name}
+                            </Typography>
+
+                            <ExpandMoreIcon fontSize="small" />
+                        </>
+                    )}
                 </Box>
+
                 <Menu
                     anchorEl={anchorEl}
                     open={Boolean(anchorEl)}
