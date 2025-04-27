@@ -15,6 +15,7 @@ import config from '../config/config.ts';
 import { ApiClient } from '../common/api.ts';
 import { ErrorResponseElement } from '../model/common.ts';
 import * as _ from 'lodash';
+import OrganizationMembersPage from '../pages/OrganizationMembersPage.tsx';
 
 export interface AuthenticatedLayoutProps {
     darkMode: boolean;
@@ -97,6 +98,7 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 >
                     <Routes>
                         <Route path={'/urls'} element={<UrlsPage />} />
+                        <Route path={'/members'} element={<OrganizationMembersPage />} />
                         <Route
                             path={'/organization'}
                             element={
