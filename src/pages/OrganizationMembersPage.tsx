@@ -1,48 +1,47 @@
-import { useState, useEffect, MouseEvent } from 'react';
+import { MouseEvent, useEffect, useState } from 'react';
 import {
+    Autocomplete,
+    Avatar,
     Box,
-    Table,
-    TableHead,
-    TableRow,
-    TableCell,
-    TableBody,
-    TablePagination,
+    Button,
+    Checkbox,
+    Chip,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControlLabel,
+    FormGroup,
     IconButton,
+    Link,
     Menu,
     MenuItem,
-    FormGroup,
-    FormControlLabel,
-    Button,
-    Link,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    CircularProgress,
-    Autocomplete,
-    Checkbox,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TablePagination,
+    TableRow,
     TableSortLabel,
-    Avatar,
-    Chip,
+    TextField,
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { z } from 'zod';
 import { ApiClient } from '../common/api';
-import { MemberRole } from '../model/auth';
 import {
-    OrganizationMemberDto,
     InviteMemberDto,
+    OrganizationMemberDto,
     UpdateMemberRolesDto,
     UpdateMemberUrlsDto,
 } from '../model/organizationMembers';
 import { ShortUrlDto } from '../model/urls';
-import { getAccessToken } from '../auth/auth';
+import { getAccessToken, hasRole } from '../auth/auth';
 import BackgroundCard from '../components/BackgroundCard';
 import config from '../config/config';
-import { ErrorResponseElement, MessageResponseDto } from '../model/common.ts';
-import * as _ from 'lodash';
+import { ErrorResponseElement, MessageResponseDto } from '../model/common';
+import { MemberRole } from '../model/auth';
 
 const ROLE_LABELS: Record<MemberRole, string> = {
     [MemberRole.ORGANIZATION_OWNER]: 'Owner',
@@ -113,6 +112,12 @@ export default function OrganizationMembersPage() {
     const [removeAnchor, setRemoveAnchor] = useState<HTMLElement | null>(null);
     const [removeRow, setRemoveRow] = useState<OrganizationMemberDto | null>(null);
 
+    const canManageMembers =
+        hasRole(MemberRole.ORGANIZATION_OWNER) ||
+        hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+        hasRole(MemberRole.ORGANIZATION_MEMBERS_MANAGER);
+    const canManageUrls = hasRole(MemberRole.ORGANIZATION_URLS_MANAGER);
+
     const fetchMembers = async () => {
         setLoading(true);
         const res = await ApiClient.getOrganizationMembers(slug, {
@@ -145,28 +150,26 @@ export default function OrganizationMembersPage() {
     };
 
     const handleRolesClick = (e: MouseEvent<HTMLElement>, member: OrganizationMemberDto) => {
-        if (member.email === currentEmail || member.roles.includes(MemberRole.ORGANIZATION_OWNER))
-            return;
+        const isSelf = member.email === currentEmail;
+        const isOwner = member.roles.includes(MemberRole.ORGANIZATION_OWNER);
+        if (!canManageMembers || isSelf || isOwner) return;
         setRolesRow(member);
         setNewRoles(member.roles.filter((r) => r !== MemberRole.ORGANIZATION_OWNER));
         setRolesAnchor(e.currentTarget);
     };
-
     const handleRolesClose = () => {
         setRolesAnchor(null);
         setRolesRow(null);
     };
-
     const handleRoleToggle = (role: MemberRole) => {
         setNewRoles((prev) =>
             prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
         );
     };
-
     const handleRolesUpdate = async () => {
         if (!rolesRow) return;
         const payload: UpdateMemberRolesDto = {
-            newRoles: newRoles.length ? newRoles : [MemberRole.ORGANIZATION_MEMBER],
+            newRoles: newRoles.length > 0 ? newRoles : [MemberRole.ORGANIZATION_MEMBER],
         };
         await ApiClient.updateMemberRoles(slug, rolesRow.id, payload);
         handleRolesClose();
@@ -174,8 +177,10 @@ export default function OrganizationMembersPage() {
     };
 
     const openUrlsDialog = async (member: OrganizationMemberDto) => {
-        if (member.email === currentEmail || member.roles.includes(MemberRole.ORGANIZATION_OWNER))
-            return;
+        const isSelf = member.email === currentEmail;
+        const isOwner = member.roles.includes(MemberRole.ORGANIZATION_OWNER);
+        if (!canManageUrls || isSelf || isOwner) return;
+
         setUrlsOpen(true);
         setUrlsLoading(true);
         setUrlsMember(member);
@@ -186,17 +191,12 @@ export default function OrganizationMembersPage() {
             entries = urlsRes.entries;
             setAllUrls(entries);
         }
-
         setAllowedAll(member.allowedAllUrls);
-        if (member.allowedAllUrls) {
-            setSelectedUrls([]);
-        } else {
-            setSelectedUrls(entries.filter((u) => member.allowedUrls.includes(u.id)));
-        }
-
+        setSelectedUrls(
+            member.allowedAllUrls ? [] : entries.filter((u) => member.allowedUrls.includes(u.id)),
+        );
         setUrlsLoading(false);
     };
-
     const handleUrlsSave = async () => {
         if (!urlsMember) return;
         const dto: UpdateMemberUrlsDto = {
@@ -213,13 +213,10 @@ export default function OrganizationMembersPage() {
         const urlsRes = await ApiClient.getShortUrls(slug, { q: 10000 });
         if (!('errorType' in urlsRes)) setAllUrls(urlsRes.entries);
     };
-
     const handleInviteClose = () => setInviteOpen(false);
-
     const handleInviteChange = (field: keyof InviteMemberDto, value: any) => {
         setInviteData((prev) => ({ ...prev, [field]: value }));
     };
-
     const handleInviteSubmit = async () => {
         const parsed = inviteSchema.safeParse(inviteData);
         if (!parsed.success) {
@@ -232,13 +229,14 @@ export default function OrganizationMembersPage() {
         }
         const dto: InviteMemberDto = {
             ...inviteData,
-            roles: inviteData.roles.length ? inviteData.roles : [MemberRole.ORGANIZATION_MEMBER],
+            roles:
+                inviteData.roles.length > 0 ? inviteData.roles : [MemberRole.ORGANIZATION_MEMBER],
         };
-        const res: MessageResponseDto | ErrorResponseElement = await ApiClient.inviteMember(
-            slug,
-            dto,
-        );
-        if (_.has(res, 'errorType')) {
+        const res = (await ApiClient.inviteMember(slug, dto)) as
+            | MessageResponseDto
+            | ErrorResponseElement;
+        if ('errorType' in res) {
+            // handle error
             return;
         }
         handleInviteClose();
@@ -258,7 +256,6 @@ export default function OrganizationMembersPage() {
         setRemoveRow(member);
         setRemoveAnchor(e.currentTarget);
     };
-
     const handleRemove = async () => {
         if (!removeRow) return;
         await ApiClient.deleteMember(slug, removeRow.id);
@@ -269,11 +266,14 @@ export default function OrganizationMembersPage() {
 
     return (
         <BackgroundCard padding={4} width="100%">
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
-                <Button variant="contained" onClick={handleInviteOpen}>
-                    Invite Member
-                </Button>
-            </Box>
+            {canManageMembers && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+                    <Button variant="contained" onClick={handleInviteOpen}>
+                        Invite Member
+                    </Button>
+                </Box>
+            )}
+
             {loading ? (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
                     <CircularProgress />
@@ -304,19 +304,22 @@ export default function OrganizationMembersPage() {
                                 </TableCell>
                                 <TableCell>Roles</TableCell>
                                 <TableCell>URLs</TableCell>
-                                <TableCell>Actions</TableCell>
+                                {canManageMembers && <TableCell>Actions</TableCell>}
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {members.map((m) => {
-                                const isDisabled =
-                                    m.email === currentEmail ||
-                                    m.roles.includes(MemberRole.ORGANIZATION_OWNER);
+                                const isSelf = m.email === currentEmail;
+                                const isOwner = m.roles.includes(MemberRole.ORGANIZATION_OWNER);
+                                const isDisabled = isSelf || isOwner;
+                                const canOpenRolesMenu = canManageMembers && !isDisabled;
                                 const labels =
                                     m.roles.length === 1 &&
                                     m.roles[0] === MemberRole.ORGANIZATION_MEMBER
                                         ? ['Member']
                                         : m.roles.map((r) => ROLE_LABELS[r]);
+                                const canEditUrls = canManageUrls && !isDisabled;
+
                                 return (
                                     <TableRow key={m.id} hover>
                                         <TableCell>
@@ -334,10 +337,12 @@ export default function OrganizationMembersPage() {
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 alignItems: 'flex-start',
-                                                cursor: isDisabled ? 'default' : 'pointer',
+                                                cursor: canOpenRolesMenu ? 'pointer' : 'default',
                                                 py: 1.5,
                                             }}
-                                            onClick={(e) => handleRolesClick(e, m)}
+                                            onClick={(e) =>
+                                                canOpenRolesMenu && handleRolesClick(e, m)
+                                            }
                                         >
                                             {labels.map((lbl, idx) => (
                                                 <Chip
@@ -351,18 +356,12 @@ export default function OrganizationMembersPage() {
                                                     sx={{ mb: 0.5 }}
                                                 />
                                             ))}
-                                            {!isDisabled && (
+                                            {canOpenRolesMenu && (
                                                 <ExpandMoreIcon fontSize="small" sx={{ mt: 0.5 }} />
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            {isDisabled ? (
-                                                m.allowedAllUrls ? (
-                                                    'All URLs'
-                                                ) : (
-                                                    `${m.allowedUrls.length} URLs`
-                                                )
-                                            ) : (
+                                            {canEditUrls ? (
                                                 <Link
                                                     component="button"
                                                     onClick={() => openUrlsDialog(m)}
@@ -371,23 +370,30 @@ export default function OrganizationMembersPage() {
                                                         ? 'All URLs'
                                                         : `${m.allowedUrls.length} URLs`}
                                                 </Link>
+                                            ) : m.allowedAllUrls ? (
+                                                'All URLs'
+                                            ) : (
+                                                `${m.allowedUrls.length} URLs`
                                             )}
                                         </TableCell>
-                                        <TableCell>
-                                            {!isDisabled && (
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={(e) => handleRemoveClick(e, m)}
-                                                >
-                                                    <MoreVertIcon />
-                                                </IconButton>
-                                            )}
-                                        </TableCell>
+                                        {canManageMembers && (
+                                            <TableCell>
+                                                {!isDisabled && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => handleRemoveClick(e, m)}
+                                                    >
+                                                        <MoreVertIcon />
+                                                    </IconButton>
+                                                )}
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 );
                             })}
                         </TableBody>
                     </Table>
+
                     <TablePagination
                         component="div"
                         count={total}
@@ -402,24 +408,32 @@ export default function OrganizationMembersPage() {
                     />
                 </>
             )}
+
             <Menu anchorEl={rolesAnchor} open={Boolean(rolesAnchor)} onClose={handleRolesClose}>
                 <FormGroup sx={{ px: 2 }}>
                     {[
                         MemberRole.ORGANIZATION_MEMBERS_MANAGER,
                         MemberRole.ORGANIZATION_MANAGER,
                         MemberRole.ORGANIZATION_URLS_MANAGER,
-                    ].map((role) => (
-                        <FormControlLabel
-                            key={role}
-                            control={
-                                <Checkbox
-                                    checked={newRoles.includes(role)}
-                                    onChange={() => handleRoleToggle(role)}
-                                />
-                            }
-                            label={ROLE_LABELS[role]}
-                        />
-                    ))}
+                    ].map((role) => {
+                        const isAdminOrOwner =
+                            hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                            hasRole(MemberRole.ORGANIZATION_ADMIN);
+                        const canToggle = isAdminOrOwner || hasRole(role);
+                        return (
+                            <FormControlLabel
+                                key={role}
+                                control={
+                                    <Checkbox
+                                        checked={newRoles.includes(role)}
+                                        onChange={() => handleRoleToggle(role)}
+                                        disabled={!canToggle}
+                                    />
+                                }
+                                label={ROLE_LABELS[role]}
+                            />
+                        );
+                    })}
                     <Button
                         onClick={handleRolesUpdate}
                         sx={{ mt: 1 }}
@@ -429,6 +443,7 @@ export default function OrganizationMembersPage() {
                     </Button>
                 </FormGroup>
             </Menu>
+
             <Dialog open={urlsOpen} onClose={() => setUrlsOpen(false)} fullWidth maxWidth="sm">
                 <DialogTitle>Manage URLs Access</DialogTitle>
                 <DialogContent>
@@ -448,7 +463,7 @@ export default function OrganizationMembersPage() {
                                 multiple
                                 options={allUrls}
                                 getOptionLabel={(opt) => opt.originalUrl}
-                                isOptionEqualToValue={(option, value) => option.id === value.id}
+                                isOptionEqualToValue={(o, v) => o.id === v.id}
                                 value={selectedUrls}
                                 onChange={(_, v) => setSelectedUrls(v)}
                                 renderInput={(params) => (
@@ -462,6 +477,7 @@ export default function OrganizationMembersPage() {
                     <Button onClick={handleUrlsSave}>Save</Button>
                 </DialogActions>
             </Dialog>
+
             <Dialog open={inviteOpen} onClose={handleInviteClose} fullWidth maxWidth="sm">
                 <DialogTitle>Invite Member</DialogTitle>
                 <DialogContent sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -471,7 +487,7 @@ export default function OrganizationMembersPage() {
                         onChange={(e) => handleInviteChange('firstname', e.target.value)}
                         error={!!inviteErrors.firstname}
                         helperText={inviteErrors.firstname}
-                        margin={'normal'}
+                        margin="normal"
                     />
                     <TextField
                         label="Last Name"
@@ -479,7 +495,7 @@ export default function OrganizationMembersPage() {
                         onChange={(e) => handleInviteChange('lastname', e.target.value)}
                         error={!!inviteErrors.lastname}
                         helperText={inviteErrors.lastname}
-                        margin={'normal'}
+                        margin="normal"
                     />
                     <TextField
                         label="Email"
@@ -487,7 +503,7 @@ export default function OrganizationMembersPage() {
                         onChange={(e) => handleInviteChange('email', e.target.value)}
                         error={!!inviteErrors.email}
                         helperText={inviteErrors.email}
-                        margin={'normal'}
+                        margin="normal"
                     />
                     <FormControlLabel
                         control={

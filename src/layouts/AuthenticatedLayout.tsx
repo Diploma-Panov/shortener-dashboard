@@ -4,7 +4,6 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import { Route, Routes } from 'react-router-dom';
 import UrlsPage from '../pages/UrlsPage';
-import DemoPage from '../pages/DemoPage';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import NotFoundPage from '../pages/NotFoundPage.tsx';
 import UserInfoPage from '../pages/UserInfoPage.tsx';
@@ -16,6 +15,9 @@ import { ApiClient } from '../common/api.ts';
 import { ErrorResponseElement } from '../model/common.ts';
 import * as _ from 'lodash';
 import OrganizationMembersPage from '../pages/OrganizationMembersPage.tsx';
+import ShortUrlStatsPage from '../pages/ShortUrlStatsPage.tsx';
+import { hasRole } from '../auth/auth.ts';
+import { MemberRole } from '../model/auth.ts';
 
 export interface AuthenticatedLayoutProps {
     darkMode: boolean;
@@ -98,22 +100,30 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 >
                     <Routes>
                         <Route path={'/urls'} element={<UrlsPage />} />
+                        {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                            hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+                            hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
+                            <Route path={'/urls/:urlId'} element={<ShortUrlStatsPage />} />
+                        )}
                         <Route path={'/members'} element={<OrganizationMembersPage />} />
-                        <Route
-                            path={'/organization'}
-                            element={
-                                <OrganizationSettingsPage
-                                    org={currentOrg}
-                                    setOrg={setCurrentOrg}
-                                    setOrgs={setOrganizations}
-                                />
-                            }
-                        />
+                        {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                            hasRole(MemberRole.ORGANIZATION_MANAGER) ||
+                            hasRole(MemberRole.ORGANIZATION_ADMIN)) && (
+                            <Route
+                                path={'/organization'}
+                                element={
+                                    <OrganizationSettingsPage
+                                        org={currentOrg}
+                                        setOrg={setCurrentOrg}
+                                        setOrgs={setOrganizations}
+                                    />
+                                }
+                            />
+                        )}
                         <Route
                             path={'/account'}
                             element={<UserInfoPage user={user} setUser={setUser} />}
                         />
-                        <Route path={'/demo'} element={<DemoPage />} />
                         <Route path="*" element={<NotFoundPage />} />
                     </Routes>
                 </Box>

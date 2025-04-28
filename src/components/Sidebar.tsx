@@ -24,7 +24,6 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import BarChartIcon from '@mui/icons-material/BarChart';
 import GroupIcon from '@mui/icons-material/Group';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -152,10 +151,7 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
 
     const navItems: { label: string; icon: JSX.Element; page: string }[] = [];
 
-    if (hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) {
-        navItems.push({ label: 'Short URLs', icon: <LinkIcon />, page: '/urls' });
-        navItems.push({ label: 'URL Analytics', icon: <BarChartIcon />, page: '/analytics' });
-    }
+    navItems.push({ label: 'Short URLs', icon: <LinkIcon />, page: '/urls' });
 
     if (hasRole(MemberRole.ORGANIZATION_MEMBERS_MANAGER)) {
         navItems.push({ label: 'Organization Members', icon: <GroupIcon />, page: '/members' });
@@ -172,15 +168,14 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
     if (hasRole(MemberRole.ORGANIZATION_OWNER) || hasRole(MemberRole.ORGANIZATION_ADMIN)) {
         navItems.push(
             ...[
-                { label: 'Short URLs', icon: <LinkIcon />, page: '/urls' },
-                { label: 'URL Analytics', icon: <BarChartIcon />, page: '/analytics' },
                 { label: 'Organization Members', icon: <GroupIcon />, page: '/members' },
                 { label: 'Organization Settings', icon: <DomainIcon />, page: '/organization' },
-                { label: 'Account Settings', icon: <AccountCircleIcon />, page: '/account' },
-                { label: 'Logout', icon: <LogoutIcon />, page: '/login' },
             ],
         );
     }
+
+    navItems.push({ label: 'Account Settings', icon: <AccountCircleIcon />, page: '/account' });
+    navItems.push({ label: 'Logout', icon: <LogoutIcon />, page: '/login' });
 
     return (
         <>

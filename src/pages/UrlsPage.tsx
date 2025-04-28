@@ -1,42 +1,43 @@
-import { useState, useEffect, SyntheticEvent, ChangeEvent, MouseEvent, KeyboardEvent } from 'react';
+import { ChangeEvent, KeyboardEvent, MouseEvent, SyntheticEvent, useEffect, useState } from 'react';
 import {
+    Autocomplete,
     Box,
-    Table,
-    TableHead,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableSortLabel,
-    TablePagination,
-    TextField,
+    Button,
     Chip,
     CircularProgress,
     Dialog,
-    DialogTitle,
-    FormHelperText,
     DialogActions,
     DialogContent,
-    Button,
-    Autocomplete,
+    DialogTitle,
+    FormHelperText,
+    IconButton,
     Menu,
     MenuItem,
-    IconButton,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TablePagination,
+    TableRow,
+    TableSortLabel,
+    TextField,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import { z } from 'zod';
 import BackgroundCard from '../components/BackgroundCard';
 import {
+    ChangeUrlStateDto,
     ShortUrlDto,
     ShortUrlsListDto,
     ShortUrlsSearchParams,
     ShortUrlState,
-    ChangeUrlStateDto,
 } from '../model/urls';
 import config from '../config/config';
 import { ErrorResponseElement } from '../model/common';
 import { ApiClient } from '../common/api';
-import { TokenResponseDto } from '../model/auth';
+import { MemberRole, TokenResponseDto } from '../model/auth';
+import { hasRole } from '../auth/auth.ts';
 
 const createShortUrlSchema = z.object({
     originalUrl: z
@@ -239,9 +240,17 @@ export default function UrlsPage() {
                     ChipProps={{ size: 'small', variant: 'outlined' }}
                     sx={{ minWidth: 200 }}
                 />
-                <Button variant="contained" onClick={() => setCreateOpen(true)} sx={{ ml: 'auto' }}>
-                    Create Short URL
-                </Button>
+                {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                    hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+                    hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
+                    <Button
+                        variant="contained"
+                        onClick={() => setCreateOpen(true)}
+                        sx={{ ml: 'auto' }}
+                    >
+                        Create Short URL
+                    </Button>
+                )}
             </Box>
 
             {loading ? (
@@ -250,7 +259,7 @@ export default function UrlsPage() {
                 </Box>
             ) : (
                 <>
-                    <Table size="small">
+                    <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
                         <TableHead>
                             <TableRow>
                                 <TableCell
@@ -276,14 +285,26 @@ export default function UrlsPage() {
                                     </TableSortLabel>
                                 </TableCell>
                                 <TableCell>Creator</TableCell>
-                                <TableCell>State</TableCell>
+                                <TableCell sx={{ width: '150px' }}>State</TableCell>
                                 <TableCell>Tags</TableCell>
-                                <TableCell>Stats</TableCell>
+                                {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                                    hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+                                    hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
+                                    <TableCell>Stats</TableCell>
+                                )}
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {entries.map((row) => (
-                                <TableRow key={row.id} hover>
+                                <TableRow
+                                    key={row.id}
+                                    hover
+                                    sx={{
+                                        '& .MuiTableCell-root': { borderBottom: 'none' },
+                                        borderBottom: 1,
+                                        borderColor: 'divider',
+                                    }}
+                                >
                                     <TableCell>{row.shortUrl}</TableCell>
                                     <TableCell>{row.originalUrl}</TableCell>
                                     <TableCell>{row.creatorName}</TableCell>
@@ -294,15 +315,19 @@ export default function UrlsPage() {
                                             size="small"
                                             variant="outlined"
                                         />
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) =>
-                                                handleStateMenuOpen(e, row.id, row.state)
-                                            }
-                                            disabled={row.state === ShortUrlState.ARCHIVED}
-                                        >
-                                            <ExpandMoreIcon fontSize="small" />
-                                        </IconButton>
+                                        {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                                            hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+                                            hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
+                                            <IconButton
+                                                size="small"
+                                                onClick={(e) =>
+                                                    handleStateMenuOpen(e, row.id, row.state)
+                                                }
+                                                disabled={row.state === ShortUrlState.ARCHIVED}
+                                            >
+                                                <ExpandMoreIcon fontSize="small" />
+                                            </IconButton>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {row.tags.map((t) => (
@@ -315,14 +340,18 @@ export default function UrlsPage() {
                                             />
                                         ))}
                                     </TableCell>
-                                    <TableCell>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleStatsOpen(row.id)}
-                                        >
-                                            <BarChartIcon fontSize="small" />
-                                        </IconButton>
-                                    </TableCell>
+                                    {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
+                                        hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+                                        hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
+                                        <TableCell>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleStatsOpen(row.id)}
+                                            >
+                                                <BarChartIcon fontSize="small" />
+                                            </IconButton>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
