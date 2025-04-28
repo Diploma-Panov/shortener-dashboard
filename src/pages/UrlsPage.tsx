@@ -324,8 +324,27 @@ export default function UrlsPage() {
                                             {row.shortUrl}
                                         </Link>
                                     </TableCell>
-                                    <TableCell>
-                                        <Link href={row.originalUrl} target="_blank" rel="noopener">
+                                    <TableCell
+                                        sx={{
+                                            maxWidth: 300,
+                                            overflow: 'hidden',
+                                            whiteSpace: 'nowrap',
+                                            textOverflow: 'ellipsis',
+                                        }}
+                                    >
+                                        <Link
+                                            href={row.originalUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            sx={{
+                                                display: 'block',
+                                                overflow: 'hidden',
+                                                whiteSpace: 'nowrap',
+                                                textOverflow: 'ellipsis',
+                                                maxWidth: '100%',
+                                                color: 'primary.main',
+                                            }}
+                                        >
                                             {row.originalUrl}
                                         </Link>
                                     </TableCell>

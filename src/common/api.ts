@@ -39,7 +39,7 @@ import { GlobalStatisticsDto, PeriodCountsDto } from '../model/statistics.ts';
 import { getAccessToken } from '../auth/auth.ts';
 
 const API_BASE = config.apiBase;
-const API_PUBLIC = '/public/users';
+const API_PUBLIC = '/public';
 const API_USER = '/user';
 
 export class ApiClient {
@@ -135,7 +135,7 @@ export class ApiClient {
         if (!refresh) return false;
         try {
             const resp: AxiosResponse<AbstractResponseDto<TokenResponseDto>> = await axios.get(
-                `${API_BASE}${API_PUBLIC}/refresh-token`,
+                `${API_BASE}${API_PUBLIC}/users/refresh-token`,
                 {
                     headers: { Authorization: refresh },
                 },
@@ -191,7 +191,7 @@ export class ApiClient {
     static signup(dto: UserSignupDto): Promise<TokenResponseDto | ErrorResponseElement> {
         return this.apiRequest<TokenResponseDto>({
             method: 'POST',
-            url: `${API_PUBLIC}/signup`,
+            url: `${API_PUBLIC}/users/signup`,
             data: dto,
             _retry: true,
         });
@@ -200,7 +200,7 @@ export class ApiClient {
     static login(dto: UserLoginDto): Promise<TokenResponseDto | ErrorResponseElement> {
         return this.apiRequest<TokenResponseDto>({
             method: 'POST',
-            url: `${API_PUBLIC}/login`,
+            url: `${API_PUBLIC}/users/login`,
             data: dto,
         });
     }
@@ -208,7 +208,7 @@ export class ApiClient {
     static exchangeShortCode(shortCode: string): Promise<TokenResponseDto | ErrorResponseElement> {
         return this.apiRequest<TokenResponseDto>({
             method: 'GET',
-            url: `${API_PUBLIC}/exchange-short-code/${shortCode}`,
+            url: `${API_PUBLIC}/users/exchange-short-code/${shortCode}`,
         });
     }
 
@@ -216,7 +216,7 @@ export class ApiClient {
         console.log('refreshToken');
         return this.apiRequest<TokenResponseDto>({
             method: 'GET',
-            url: `${API_PUBLIC}/refresh-token`,
+            url: `${API_PUBLIC}/users/refresh-token`,
             _retry: true,
         });
     }
@@ -373,6 +373,14 @@ export class ApiClient {
             method: 'POST',
             url: `${API_USER}/organizations/${slug}/urls`,
             data: dto,
+        });
+    }
+
+    static createTrialShortUrl(originalUrl: string): Promise<ShortUrlDto | ErrorResponseElement> {
+        return this.apiRequest<ShortUrlDto>({
+            method: 'POST',
+            url: `${API_PUBLIC}/urls`,
+            data: { originalUrl },
         });
     }
 

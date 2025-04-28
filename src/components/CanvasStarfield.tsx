@@ -107,7 +107,6 @@ const CanvasStarfield: FC<CanvasStarfieldProps> = ({
                 position: 'absolute',
                 inset: 0,
                 pointerEvents: 'none',
-                height: '100vh',
                 width: '100vw',
             }}
         />

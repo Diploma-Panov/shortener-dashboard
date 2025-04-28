@@ -12,6 +12,7 @@ import SignupPage from './pages/SignupPage.tsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.tsx';
 import PasswordRecoveryPage from './pages/PasswordRecoveryPage.tsx';
 import { AppToastContainer } from './components/toast.tsx';
+import LandingPage from './pages/LandingPage.tsx';
 
 export default function App() {
     const [darkMode, setDarkMode] = useState(
@@ -39,6 +40,10 @@ export default function App() {
             <Routes>
                 {!isAuthenticated && (
                     <>
+                        <Route
+                            path="/"
+                            element={<LandingPage darkMode={darkMode} setDarkMode={setDarkMode} />}
+                        />
                         <Route
                             path="/login"
                             element={<LoginPage darkMode={darkMode} setDarkMode={setDarkMode} />}
