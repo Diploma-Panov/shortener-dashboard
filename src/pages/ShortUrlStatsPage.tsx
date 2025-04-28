@@ -1,6 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Box, CircularProgress, Tooltip, Typography, useTheme, Button } from '@mui/material';
+import {
+    Box,
+    CircularProgress,
+    Tooltip,
+    Typography,
+    useTheme,
+    Button,
+    Link,
+    Chip,
+} from '@mui/material';
 import BackgroundCard from '../components/BackgroundCard';
 import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
 import {
@@ -39,8 +48,23 @@ import shp from 'shpjs';
 import type { Feature, Polygon, MultiPolygon, Point, Geometry, FeatureCollection } from 'geojson';
 import countries from 'i18n-iso-countries';
 import en from 'i18n-iso-countries/langs/en.json';
+import { ShortUrlDto, ShortUrlState } from '../model/urls.ts';
 
 countries.registerLocale(en);
+
+const STATE_LABELS: Record<ShortUrlState, string> = {
+    [ShortUrlState.PENDING]: 'Pending',
+    [ShortUrlState.ACTIVE]: 'Active',
+    [ShortUrlState.NOT_ACTIVE]: 'Not Active',
+    [ShortUrlState.ARCHIVED]: 'Archived',
+};
+
+const STATE_COLORS: Record<ShortUrlState, 'default' | 'info' | 'success' | 'warning'> = {
+    [ShortUrlState.PENDING]: 'info',
+    [ShortUrlState.ACTIVE]: 'success',
+    [ShortUrlState.NOT_ACTIVE]: 'warning',
+    [ShortUrlState.ARCHIVED]: 'default',
+};
 
 function getRandomPointsInCountry(
     feature: Feature<Polygon | MultiPolygon>,
@@ -85,6 +109,21 @@ export default function ShortUrlStatsPage() {
     const { urlId } = useParams<{ urlId: string }>();
     const id = Number(urlId);
     const slug = localStorage.getItem(config.currentOrganizationSlugKey)!;
+
+    const [shortUrl, setShortUrl] = useState<ShortUrlDto | null>(null);
+    const [loadingShortUrl, setLoadingShortUrl] = useState(false);
+
+    useEffect(() => {
+        if (!slug || !id) return;
+        setLoadingShortUrl(true);
+        ApiClient.getShortUrl(slug, id)
+            .then((res) => {
+                if (!('errorType' in res)) {
+                    setShortUrl(res as ShortUrlDto);
+                }
+            })
+            .finally(() => setLoadingShortUrl(false));
+    }, [slug, id]);
 
     const [globalStats, setGlobalStats] = useState<GlobalStatisticsDto | null>(null);
     const [loadingGlobal, setLoadingGlobal] = useState(false);
@@ -234,6 +273,47 @@ export default function ShortUrlStatsPage() {
                 <Typography variant="h4" gutterBottom>
                     URL Opening Statistics
                 </Typography>
+
+                {loadingShortUrl || !shortUrl ? (
+                    <Box textAlign="center" mb={4}>
+                        <CircularProgress size={20} />
+                    </Box>
+                ) : (
+                    <Box
+                        mb={4}
+                        p={2}
+                        sx={{
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 1,
+                        }}
+                    >
+                        <Typography variant="subtitle2" gutterBottom>
+                            Original URL:{' '}
+                            <Link href={shortUrl.originalUrl} target="_blank" rel="noopener">
+                                {shortUrl.originalUrl}
+                            </Link>
+                        </Typography>
+                        <Typography variant="subtitle2" gutterBottom>
+                            Short URL:{' '}
+                            <Link href={shortUrl.shortUrl} target="_blank" rel="noopener">
+                                {shortUrl.shortUrl}
+                            </Link>
+                        </Typography>
+                        <Typography variant="body2" gutterBottom>
+                            Creator: {shortUrl.creatorName}
+                        </Typography>
+                        <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+                            <Chip
+                                label={STATE_LABELS[shortUrl.state]}
+                                color={STATE_COLORS[shortUrl.state]}
+                                size="small"
+                            />
+                            {shortUrl.tags.map((tag) => (
+                                <Chip key={tag} label={tag} size="small" variant="outlined" />
+                            ))}
+                        </Box>
+                    </Box>
+                )}
 
                 {!globalStats || loadingGlobal ? (
                     <Box textAlign="center" py={6}>

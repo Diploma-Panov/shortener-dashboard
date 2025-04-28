@@ -1,2 +1,2 @@
-# shortener-dashboard
+# Shortener Dashboard
 URL Shortener Frontend Application

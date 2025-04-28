@@ -11,6 +11,7 @@ import {
     DialogTitle,
     FormHelperText,
     IconButton,
+    Link,
     Menu,
     MenuItem,
     Table,
@@ -290,7 +291,7 @@ export default function UrlsPage() {
                                 {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
                                     hasRole(MemberRole.ORGANIZATION_ADMIN) ||
                                     hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
-                                    <TableCell>Stats</TableCell>
+                                    <TableCell width={65}>Stats</TableCell>
                                 )}
                             </TableRow>
                         </TableHead>
@@ -305,8 +306,16 @@ export default function UrlsPage() {
                                         borderColor: 'divider',
                                     }}
                                 >
-                                    <TableCell>{row.shortUrl}</TableCell>
-                                    <TableCell>{row.originalUrl}</TableCell>
+                                    <TableCell>
+                                        <Link href={row.shortUrl} target="_blank" rel="noopener">
+                                            {row.shortUrl}
+                                        </Link>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Link href={row.originalUrl} target="_blank" rel="noopener">
+                                            {row.originalUrl}
+                                        </Link>
+                                    </TableCell>
                                     <TableCell>{row.creatorName}</TableCell>
                                     <TableCell sx={{ display: 'flex', alignItems: 'center' }}>
                                         <Chip
@@ -343,7 +352,7 @@ export default function UrlsPage() {
                                     {(hasRole(MemberRole.ORGANIZATION_OWNER) ||
                                         hasRole(MemberRole.ORGANIZATION_ADMIN) ||
                                         hasRole(MemberRole.ORGANIZATION_URLS_MANAGER)) && (
-                                        <TableCell>
+                                        <TableCell width={65}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() => handleStatsOpen(row.id)}
