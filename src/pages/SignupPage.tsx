@@ -21,6 +21,7 @@ import { ErrorResponseElement, ServiceErrorType } from '../model/common';
 import { TokenResponseDto } from '../model/auth';
 import { ApiClient } from '../common/api.ts';
 import * as _ from 'lodash';
+import { useAppToast } from '../components/toast.tsx';
 
 interface SignupPageProps {
     darkMode: boolean;
@@ -67,6 +68,8 @@ const SignupPage: FC<SignupPageProps> = ({ darkMode, setDarkMode }) => {
     const [errors, setErrors] = useState<Partial<Record<keyof SignupForm | 'general', string>>>({});
     const [loading, setLoading] = useState(false);
 
+    const { success, error } = useAppToast();
+
     const handleChange = (field: keyof SignupForm) => (e: ChangeEvent<HTMLInputElement>) => {
         setForm((prev) => ({ ...prev, [field]: e.target.value }));
         setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -92,9 +95,9 @@ const SignupPage: FC<SignupPageProps> = ({ darkMode, setDarkMode }) => {
 
             if (_.has(tokensResponse, 'errorType')) {
                 if (tokensResponse.errorType === ServiceErrorType.ENTITY_ALREADY_EXISTS) {
-                    setErrors({ general: 'User with this email already exists' });
+                    error('User with this email already exists');
                 } else {
-                    setErrors({ general: 'Signup failed' });
+                    error('Signup failed');
                 }
                 setLoading(false);
                 return;
@@ -103,9 +106,11 @@ const SignupPage: FC<SignupPageProps> = ({ darkMode, setDarkMode }) => {
             const { accessToken, refreshToken } = tokensResponse as TokenResponseDto;
             localStorage.setItem(config.accessTokenKey, accessToken);
             localStorage.setItem(config.refreshTokenKey, refreshToken!);
+
             window.location.href = '/urls';
+            success('Registration is successful');
         } catch (e) {
-            setErrors({ general: 'Network error' });
+            error('Network error');
         } finally {
             setLoading(false);
         }

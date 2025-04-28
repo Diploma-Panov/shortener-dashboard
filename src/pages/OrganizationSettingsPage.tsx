@@ -30,6 +30,7 @@ import { getAccessToken, hasRole } from '../auth/auth.ts';
 import { ApiClient } from '../common/api.ts';
 import { ErrorResponseElement } from '../model/common.ts';
 import * as _ from 'lodash';
+import { useAppToast } from '../components/toast.tsx';
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
     new Promise((resolve, reject) => {
@@ -88,11 +89,14 @@ export default function OrganizationSettingsPage({
     const [showCrop, setShowCrop] = useState(false);
     const [processingAvatar, setProcessingAvatar] = useState(false);
 
+    const { success, error } = useAppToast();
+
     useEffect(() => {
         (async () => {
             const organizationRes: OrganizationDto | ErrorResponseElement =
                 await ApiClient.getOrganizationBySlug(slug);
             if (_.has(organizationRes, 'errorType')) {
+                error('Could not get current organization info');
                 return;
             }
             const organization: OrganizationDto = organizationRes as OrganizationDto;
@@ -116,12 +120,16 @@ export default function OrganizationSettingsPage({
             await ApiClient.updateOrganizationInfo(slug, dto);
 
         if (_.has(updatedOrganization, 'errorType')) {
+            error('Could not update organization info');
             return;
         }
+
+        success('Successfully updated organization info');
 
         const updatedOrganizations: OrganizationsListDto | ErrorResponseElement =
             await ApiClient.getUserOrganizations({ q: 10000 });
         if (_.has(updatedOrganizations, 'errorType')) {
+            error("Could not get participating organizations' info");
             return;
         }
 
@@ -163,12 +171,16 @@ export default function OrganizationSettingsPage({
         const updatedOrganization: OrganizationDto | ErrorResponseElement =
             await ApiClient.updateOrganizationAvatar(slug, dto);
         if (_.has(updatedOrganization, 'errorType')) {
+            error('Could not upload organization avatar');
             return;
         }
+
+        success('Successfully uploaded organization avatar');
 
         const updatedOrganizations: OrganizationsListDto | ErrorResponseElement =
             await ApiClient.getUserOrganizations({ q: 10000 });
         if (_.has(updatedOrganizations, 'errorType')) {
+            error("Could not get participating organization's info");
             return;
         }
 
@@ -183,12 +195,16 @@ export default function OrganizationSettingsPage({
         const updatedOrganization: OrganizationDto | ErrorResponseElement =
             await ApiClient.deleteOrganizationAvatar(slug);
         if (_.has(updatedOrganization, 'errorType')) {
+            error('Could not delete organization avatar');
             return;
         }
+
+        success('Successfully deleted organization avatar');
 
         const updatedOrganizations: OrganizationsListDto | ErrorResponseElement =
             await ApiClient.getUserOrganizations({ q: 10000 });
         if (_.has(updatedOrganizations, 'errorType')) {
+            error("Could not get participating organization's info");
             return;
         }
 
@@ -201,14 +217,18 @@ export default function OrganizationSettingsPage({
         const updatedTokens: TokenResponseDto | ErrorResponseElement =
             await ApiClient.deleteOrganization(slug);
         if (_.has(updatedTokens, 'errorType')) {
+            error('Could not delete organization');
             return;
         }
+
         const { accessToken, refreshToken } = updatedTokens as TokenResponseDto;
         localStorage.setItem(config.accessTokenKey, accessToken);
         localStorage.setItem(config.refreshTokenKey, refreshToken!);
         const { organizations } = getAccessToken()!;
         localStorage.setItem(config.currentOrganizationSlugKey, organizations[0].slug);
         window.location.href = '/urls';
+
+        success('Successfully deleted organization');
     };
 
     if (loading) return <CircularProgress />;

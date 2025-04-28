@@ -40,8 +40,10 @@ import { ShortUrlDto } from '../model/urls';
 import { getAccessToken, hasRole } from '../auth/auth';
 import BackgroundCard from '../components/BackgroundCard';
 import config from '../config/config';
-import { ErrorResponseElement, MessageResponseDto } from '../model/common';
+import { ErrorResponseElement, MessageResponseDto, ServiceErrorType } from '../model/common';
 import { MemberRole } from '../model/auth';
+import { useAppToast } from '../components/toast.tsx';
+import * as _ from 'lodash';
 
 const ROLE_LABELS: Record<MemberRole, string> = {
     [MemberRole.ORGANIZATION_OWNER]: 'Owner',
@@ -112,11 +114,16 @@ export default function OrganizationMembersPage() {
     const [removeAnchor, setRemoveAnchor] = useState<HTMLElement | null>(null);
     const [removeRow, setRemoveRow] = useState<OrganizationMemberDto | null>(null);
 
+    const { success, error } = useAppToast();
+
     const canManageMembers =
         hasRole(MemberRole.ORGANIZATION_OWNER) ||
         hasRole(MemberRole.ORGANIZATION_ADMIN) ||
         hasRole(MemberRole.ORGANIZATION_MEMBERS_MANAGER);
-    const canManageUrls = hasRole(MemberRole.ORGANIZATION_URLS_MANAGER);
+    const canManageUrls =
+        hasRole(MemberRole.ORGANIZATION_URLS_MANAGER) ||
+        hasRole(MemberRole.ORGANIZATION_ADMIN) ||
+        hasRole(MemberRole.ORGANIZATION_OWNER);
 
     const fetchMembers = async () => {
         setLoading(true);
@@ -134,6 +141,8 @@ export default function OrganizationMembersPage() {
             );
             setMembers(sorted);
             setTotal(res.total);
+        } else {
+            error('Could not get members of the organization');
         }
         setLoading(false);
     };
@@ -171,7 +180,16 @@ export default function OrganizationMembersPage() {
         const payload: UpdateMemberRolesDto = {
             newRoles: newRoles.length > 0 ? newRoles : [MemberRole.ORGANIZATION_MEMBER],
         };
-        await ApiClient.updateMemberRoles(slug, rolesRow.id, payload);
+        const res: MessageResponseDto | ErrorResponseElement = await ApiClient.updateMemberRoles(
+            slug,
+            rolesRow.id,
+            payload,
+        );
+        if (_.has(res, 'errorType')) {
+            error('Could not update member roles');
+            return;
+        }
+        success('Successfully updated member roles');
         handleRolesClose();
         fetchMembers();
     };
@@ -197,13 +215,23 @@ export default function OrganizationMembersPage() {
         );
         setUrlsLoading(false);
     };
+
     const handleUrlsSave = async () => {
         if (!urlsMember) return;
         const dto: UpdateMemberUrlsDto = {
             allowedAllUrls: allowedAll,
             newUrlsIds: allowedAll ? [] : selectedUrls.map((u) => u.id),
         };
-        await ApiClient.updateMemberUrls(slug, urlsMember.id, dto);
+        const res: MessageResponseDto | ErrorResponseElement = await ApiClient.updateMemberUrls(
+            slug,
+            urlsMember.id,
+            dto,
+        );
+        if (_.has(res, 'errorType')) {
+            error('Could not update allowed URLs of member');
+            return;
+        }
+        success('Successfully updated member allowed URLs');
         setUrlsOpen(false);
         fetchMembers();
     };
@@ -236,9 +264,14 @@ export default function OrganizationMembersPage() {
             | MessageResponseDto
             | ErrorResponseElement;
         if ('errorType' in res) {
-            // handle error
+            if (res.errorType === ServiceErrorType.ENTITY_ALREADY_EXISTS) {
+                error('Member with this email already exists');
+            } else {
+                error('Could not invite new member');
+            }
             return;
         }
+        success('Successfully invited new member');
         handleInviteClose();
         fetchMembers();
         setInviteData({
@@ -258,7 +291,15 @@ export default function OrganizationMembersPage() {
     };
     const handleRemove = async () => {
         if (!removeRow) return;
-        await ApiClient.deleteMember(slug, removeRow.id);
+        const res: MessageResponseDto | ErrorResponseElement = await ApiClient.deleteMember(
+            slug,
+            removeRow.id,
+        );
+        if (_.has(res, 'errorType')) {
+            error('Could not remove member');
+            return;
+        }
+        success('Member was successfully removed');
         setRemoveAnchor(null);
         setPage(0);
         fetchMembers();

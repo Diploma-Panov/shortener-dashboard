@@ -41,6 +41,7 @@ import { z } from 'zod';
 import { ErrorResponseElement } from '../model/common.ts';
 import { ApiClient } from '../common/api.ts';
 import * as _ from 'lodash';
+import { useAppToast } from './toast.tsx';
 
 const createOrgSchema = z.object({
     name: z.string().nonempty('Name is required'),
@@ -90,6 +91,8 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const { error } = useAppToast();
+
     const [open, setOpen] = useState(true);
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -115,6 +118,7 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
             const res: TokenResponseDto | ErrorResponseElement =
                 await ApiClient.createOrganization(parsed);
             if (_.has(res, 'errorType')) {
+                error('Could not create organization');
                 return;
             }
 
@@ -141,6 +145,7 @@ export default function Sidebar({ user, setUser, org, orgs }: SidebarProps) {
             const res: UserInfoDto | ErrorResponseElement = await ApiClient.getUserInfo();
 
             if (_.has(res, 'errorType')) {
+                error('Could not get user info');
                 return;
             }
 

@@ -49,6 +49,7 @@ import type { Feature, Polygon, MultiPolygon, Point, Geometry, FeatureCollection
 import countries from 'i18n-iso-countries';
 import en from 'i18n-iso-countries/langs/en.json';
 import { ShortUrlDto, ShortUrlState } from '../model/urls.ts';
+import { useAppToast } from '../components/toast.tsx';
 
 countries.registerLocale(en);
 
@@ -113,6 +114,8 @@ export default function ShortUrlStatsPage() {
     const [shortUrl, setShortUrl] = useState<ShortUrlDto | null>(null);
     const [loadingShortUrl, setLoadingShortUrl] = useState(false);
 
+    const { error } = useAppToast();
+
     useEffect(() => {
         if (!slug || !id) return;
         setLoadingShortUrl(true);
@@ -120,6 +123,8 @@ export default function ShortUrlStatsPage() {
             .then((res) => {
                 if (!('errorType' in res)) {
                     setShortUrl(res as ShortUrlDto);
+                } else {
+                    error('Could not get short URL info');
                 }
             })
             .finally(() => setLoadingShortUrl(false));
@@ -155,7 +160,11 @@ export default function ShortUrlStatsPage() {
         setLoadingGlobal(true);
         ApiClient.getGlobalStats(slug, id)
             .then((res) => {
-                if (!('errorType' in res)) setGlobalStats(res as GlobalStatisticsDto);
+                if (!('errorType' in res)) {
+                    setGlobalStats(res as GlobalStatisticsDto);
+                } else {
+                    error('Could not get global stats for short URL');
+                }
             })
             .finally(() => setLoadingGlobal(false));
     }, [slug, id]);
@@ -217,8 +226,11 @@ export default function ShortUrlStatsPage() {
         setLoadingTime((t) => ({ ...t, [p]: true }));
         ApiClient.getTimeRangeStats(slug, id, start, end, p)
             .then((res) => {
-                if (!('errorType' in res))
+                if (!('errorType' in res)) {
                     setTimeData((t) => ({ ...t, [p]: res as PeriodCountsDto }));
+                } else {
+                    error('Could not time range stats');
+                }
             })
             .finally(() => setLoadingTime((t) => ({ ...t, [p]: false })));
     };

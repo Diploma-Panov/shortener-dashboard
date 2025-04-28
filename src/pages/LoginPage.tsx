@@ -21,6 +21,7 @@ import { TokenResponseDto } from '../model/auth.ts';
 import { getAccessToken } from '../auth/auth.ts';
 import { ApiClient } from '../common/api.ts';
 import * as _ from 'lodash';
+import { useAppToast } from '../components/toast.tsx';
 
 type LoginForm = {
     username: string;
@@ -48,6 +49,8 @@ const LoginPage: FC<LoginPageProps> = ({ darkMode, setDarkMode }) => {
         setErrors((prev) => ({ ...prev, [field]: undefined }));
     };
 
+    const { success, error } = useAppToast();
+
     const handleLogin = async () => {
         const result = loginSchema.safeParse(form);
         if (!result.success) {
@@ -64,7 +67,7 @@ const LoginPage: FC<LoginPageProps> = ({ darkMode, setDarkMode }) => {
             const tokenResponse: TokenResponseDto | ErrorResponseElement =
                 await ApiClient.login(form);
             if (_.has(tokenResponse, 'errorType')) {
-                setErrors({ general: 'Login failed' });
+                error('Login failed');
                 return;
             }
             const { accessToken, refreshToken } = tokenResponse as TokenResponseDto;
@@ -72,7 +75,9 @@ const LoginPage: FC<LoginPageProps> = ({ darkMode, setDarkMode }) => {
             localStorage.setItem(config.refreshTokenKey, refreshToken!);
             const { organizations } = getAccessToken()!;
             localStorage.setItem(config.currentOrganizationSlugKey, organizations[0].slug);
+
             window.location.href = '/urls';
+            success('Login succeeded');
         } catch (e) {
             console.error('Login error:', e);
             setErrors({ general: 'Network error' });
@@ -118,15 +123,32 @@ const LoginPage: FC<LoginPageProps> = ({ darkMode, setDarkMode }) => {
                             helperText={errors.username}
                         />
 
-                        <TextField
-                            label="Password"
-                            type="password"
-                            fullWidth
-                            value={form.password}
-                            onChange={handleChange('password')}
-                            error={!!errors.password}
-                            helperText={errors.password}
-                        />
+                        <Box>
+                            <TextField
+                                label="Password"
+                                type="password"
+                                fullWidth
+                                value={form.password}
+                                onChange={handleChange('password')}
+                                error={!!errors.password}
+                                helperText={errors.password}
+                            />
+                            <Box textAlign="right" sx={{ mt: 1 }}>
+                                <Link
+                                    component={RouterLink}
+                                    to="/forgot-password"
+                                    variant="body2"
+                                    underline="hover"
+                                    sx={{
+                                        fontSize: '0.875rem',
+                                        color: theme.palette.primary.main,
+                                        m: 0,
+                                    }}
+                                >
+                                    Forgot Password?
+                                </Link>
+                            </Box>
+                        </Box>
 
                         <Button
                             variant="contained"

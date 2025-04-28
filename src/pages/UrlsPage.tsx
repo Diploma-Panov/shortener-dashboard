@@ -39,6 +39,7 @@ import { ErrorResponseElement } from '../model/common';
 import { ApiClient } from '../common/api';
 import { MemberRole, TokenResponseDto } from '../model/auth';
 import { hasRole } from '../auth/auth.ts';
+import { useAppToast } from '../components/toast.tsx';
 
 const createShortUrlSchema = z.object({
     originalUrl: z
@@ -84,6 +85,8 @@ export default function UrlsPage() {
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
     const [menuRowId, setMenuRowId] = useState<number | null>(null);
 
+    const { success, error } = useAppToast();
+
     const allStates = Object.values(ShortUrlState) as ShortUrlState[];
 
     const slug = localStorage.getItem(config.currentOrganizationSlugKey)!;
@@ -105,9 +108,15 @@ export default function UrlsPage() {
             setEntries(resEntries.entries);
             setTotal(resEntries.total);
             setPerPage(resEntries.perPage);
+        } else {
+            error('Could not get short URLs info');
         }
         const resTags = (await ApiClient.getTags(slug)) as string[] | ErrorResponseElement;
-        if (!('errorType' in resTags)) setAllTags(resTags);
+        if (!('errorType' in resTags)) {
+            setAllTags(resTags);
+        } else {
+            error('Could not get all tags');
+        }
         setLoading(false);
     };
 
@@ -171,11 +180,14 @@ export default function UrlsPage() {
             newState,
         } as ChangeUrlStateDto)) as ShortUrlDto | ErrorResponseElement;
         if (!('errorType' in res)) {
+            success("Short URL's state was successfully changed");
             setEntries((prev) =>
                 prev.map((e) =>
                     e.id === menuRowId ? { ...e, state: (res as ShortUrlDto).state } : e,
                 ),
             );
+        } else {
+            error('Could not change state of the short URL');
         }
         handleStateMenuClose();
     };
@@ -195,8 +207,9 @@ export default function UrlsPage() {
             | TokenResponseDto
             | ErrorResponseElement;
         if ('errorType' in res) {
-            setFormErrors({ originalUrl: res.errorMessage || res.errorType });
+            error('Could not create short URL');
         } else {
+            success('Short URL was successfully created');
             setCreateOpen(false);
             setNewOriginalUrl('');
             setNewTags([]);

@@ -155,6 +155,39 @@ export class ApiClient {
         }
     }
 
+    static sendResetPassword(email: string): Promise<MessageResponseDto | ErrorResponseElement> {
+        const data = { email };
+        return this.apiRequest<MessageResponseDto>({
+            method: 'POST',
+            url: `${config.authApiBase}/public/users/send-reset-password`,
+            data,
+            _retry: true,
+        });
+    }
+
+    static async resetPasswordByCode(
+        recoveryCode: string,
+        newPassword: string,
+    ): Promise<void | ErrorResponseElement> {
+        const data = { recoveryCode, newPassword };
+        const response = await this.apiRequest<any>({
+            method: 'POST',
+            url: `${config.authApiBase}/public/users/reset-password`,
+            data,
+            maxRedirects: 0,
+            validateStatus: (status) => status >= 200 && status < 400,
+        });
+
+        if (response.status === 302 || response.status === 303) {
+            const redirectUrl = response.headers['location'];
+            if (redirectUrl) {
+                window.location.href = redirectUrl;
+            } else {
+                throw new Error('Redirect URL not provided by server');
+            }
+        }
+    }
+
     static signup(dto: UserSignupDto): Promise<TokenResponseDto | ErrorResponseElement> {
         return this.apiRequest<TokenResponseDto>({
             method: 'POST',

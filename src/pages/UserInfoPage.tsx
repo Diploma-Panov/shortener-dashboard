@@ -19,8 +19,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import { UpdateUserInfoDto, UpdateUserProfilePictureDto, UserInfoDto } from '../model/users';
 import BackgroundCard from '../components/BackgroundCard';
 import { ApiClient } from '../common/api.ts';
-import { ErrorResponseElement } from '../model/common.ts';
+import { ErrorResponseElement, ServiceErrorType } from '../model/common.ts';
 import * as _ from 'lodash';
+import { useAppToast } from '../components/toast.tsx';
 
 interface UserInfoProps {
     user: UserInfoDto | null;
@@ -77,11 +78,14 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
     const [processingAvatar, setProcessingAvatar] = useState<boolean>(false);
     const [saving, setSaving] = useState<boolean>(false);
 
+    const { success, error } = useAppToast();
+
     useEffect(() => {
         (async () => {
             const res: UserInfoDto | ErrorResponseElement = await ApiClient.getUserInfo();
 
             if (_.has(res, 'errorType')) {
+                error('Could not get user info');
                 return;
             }
 
@@ -101,8 +105,11 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
         const res: UserInfoDto | ErrorResponseElement = await ApiClient.deleteProfilePicture();
 
         if (_.has(res, 'errorType')) {
+            error('Could not delete profile picture');
             return;
         }
+
+        success('Profile picture was successfully deleted');
 
         const payload: UserInfoDto = res as UserInfoDto;
         setUser(payload);
@@ -119,13 +126,21 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
         };
         const res: UserInfoDto | ErrorResponseElement = await ApiClient.updateUserInfo(dto);
 
+        setUpdatingInfo(false);
+
         if (_.has(res, 'errorType')) {
+            if (res.errorType === ServiceErrorType.ENTITY_ALREADY_EXISTS) {
+                error('User with this email already exists');
+            } else {
+                error('Could not update user info');
+            }
             return;
         }
 
+        success('User info was successfully updated');
+
         const payload: UserInfoDto = res as UserInfoDto;
         setUser(payload);
-        setUpdatingInfo(false);
     };
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -159,8 +174,11 @@ export default function UserInfoPage({ user, setUser }: UserInfoProps) {
         const res: UserInfoDto | ErrorResponseElement = await ApiClient.updateProfilePicture(dto);
 
         if (_.has(res, 'errorType')) {
+            error('Could not upload profile picture');
             return;
         }
+
+        success('Profile picture was successfully uploaded');
 
         const payload: UserInfoDto = res as UserInfoDto;
         setUser(payload);

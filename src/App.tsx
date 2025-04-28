@@ -9,6 +9,9 @@ import CanvasStarfield from './components/CanvasStarfield';
 import LoginPage from './pages/LoginPage';
 import { getAccessToken, getRefreshToken } from './auth/auth';
 import SignupPage from './pages/SignupPage.tsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.tsx';
+import PasswordRecoveryPage from './pages/PasswordRecoveryPage.tsx';
+import { AppToastContainer } from './components/toast.tsx';
 
 export default function App() {
     const [darkMode, setDarkMode] = useState(
@@ -44,6 +47,11 @@ export default function App() {
                             path="/signup"
                             element={<SignupPage darkMode={darkMode} setDarkMode={setDarkMode} />}
                         />
+                        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                        <Route
+                            path="/password-reset/:recoveryCode"
+                            element={<PasswordRecoveryPage />}
+                        />
                         <Route path="*" element={<Navigate to="/login" replace />} />
                     </>
                 )}
@@ -62,6 +70,7 @@ export default function App() {
                     </>
                 )}
             </Routes>
+            <AppToastContainer />
         </ThemeProvider>
     );
 }

@@ -18,6 +18,7 @@ import OrganizationMembersPage from '../pages/OrganizationMembersPage.tsx';
 import ShortUrlStatsPage from '../pages/ShortUrlStatsPage.tsx';
 import { hasRole } from '../auth/auth.ts';
 import { MemberRole } from '../model/auth.ts';
+import { useAppToast } from '../components/toast.tsx';
 
 export interface AuthenticatedLayoutProps {
     darkMode: boolean;
@@ -29,6 +30,8 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
     const [currentOrg, setCurrentOrg] = useState<OrganizationDto | null>(null);
     const [organizations, setOrganizations] = useState<OrganizationDto[] | null>(null);
 
+    const { error } = useAppToast();
+
     useEffect(() => {
         (async () => {
             const slug = localStorage.getItem(config.currentOrganizationSlugKey)!;
@@ -36,6 +39,7 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
                 await ApiClient.getOrganizationBySlug(slug);
 
             if (_.has(res, 'errorType')) {
+                error('Could not get current organization info');
                 return;
             }
 
@@ -47,6 +51,7 @@ const AuthenticatedLayout = ({ darkMode, setDarkMode }: AuthenticatedLayoutProps
             const res: OrganizationsListDto | ErrorResponseElement =
                 await ApiClient.getUserOrganizations({ q: 10000 });
             if (_.has(res, 'errorType')) {
+                error("Could not get participating organizations' info");
                 return;
             }
             const { entries }: OrganizationsListDto = res as OrganizationsListDto;
