@@ -82,12 +82,12 @@ const geoJson = feature(
     (worldData as any).objects.countries,
 ) as unknown as FeatureCollection<Geometry, any>;
 
-const CITY_COORDINATES: Record<string, [number, number]> = {
-    'New York': [-74.006, 40.7128],
-    Kyiv: [30.5234, 50.4501],
-    Tokyo: [139.6917, 35.6895],
-    London: [-0.1276, 51.5074],
-};
+// const CITY_COORDINATES: Record<string, [number, number]> = {
+//     'New York': [-74.006, 40.7128],
+//     Kyiv: [30.5234, 50.4501],
+//     Tokyo: [139.6917, 35.6895],
+//     London: [-0.1276, 51.5074],
+// };
 
 const PERIOD_LABELS: Record<StatsPeriod, string> = {
     [StatsPeriod.MINUTE]: 'Minutely Opens',
@@ -301,7 +301,19 @@ export default function ShortUrlStatsPage() {
                     >
                         <Typography variant="subtitle2" gutterBottom>
                             Original URL:{' '}
-                            <Link href={shortUrl.originalUrl} target="_blank" rel="noopener">
+                            <Link
+                                href={shortUrl.originalUrl}
+                                target="_blank"
+                                rel="noopener"
+                                sx={{
+                                    display: 'inline-block',
+                                    maxWidth: '60%',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    verticalAlign: 'bottom',
+                                }}
+                            >
                                 {shortUrl.originalUrl}
                             </Link>
                         </Typography>
@@ -424,20 +436,20 @@ export default function ShortUrlStatsPage() {
                                         </Marker>
                                     ))}
 
-                                    {Object.entries(globalStats.cityCounts).map(([city, count]) => {
-                                        const coords = CITY_COORDINATES[city];
-                                        if (!coords) return null;
-                                        return (
-                                            <Marker key={city} coordinates={coords}>
-                                                <Tooltip title={`${city} – ${count} openings`}>
-                                                    <circle
-                                                        r={Math.max(4, Math.sqrt(count) * 1.5)}
-                                                        fill={primaryColor}
-                                                    />
-                                                </Tooltip>
-                                            </Marker>
-                                        );
-                                    })}
+                                    {/*{Object.entries(globalStats.cityCounts).map(([city, count]) => {*/}
+                                    {/*    const coords = CITY_COORDINATES[city];*/}
+                                    {/*    if (!coords) return null;*/}
+                                    {/*    return (*/}
+                                    {/*        <Marker key={city} coordinates={coords}>*/}
+                                    {/*            <Tooltip title={`${city} – ${count} openings`}>*/}
+                                    {/*                <circle*/}
+                                    {/*                    r={Math.max(4, Math.sqrt(count) * 1.5)}*/}
+                                    {/*                    fill={primaryColor}*/}
+                                    {/*                />*/}
+                                    {/*            </Tooltip>*/}
+                                    {/*        </Marker>*/}
+                                    {/*    );*/}
+                                    {/*})}*/}
                                 </ZoomableGroup>
                             </ComposableMap>
                         </Box>
